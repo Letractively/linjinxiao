@@ -1,7 +1,7 @@
 /**
  * 
  */
-package oracle.form.property;
+package oracle.form.property.lov;
 
 import java.util.ArrayList;
 

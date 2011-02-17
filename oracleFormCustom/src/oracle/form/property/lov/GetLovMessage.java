@@ -1,25 +1,28 @@
 /**
  * 
  */
-package oracle.form.property;
+package oracle.form.property.lov;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import oracle.form.property.Constant;
+import oracle.form.property.DBManager;
+import oracle.form.property.FormPropertyHandler;
+import oracle.form.property.ui.GUI;
 
 
 /**
@@ -46,12 +49,18 @@ public class GetLovMessage {
 	private String moduleName;
 	File outputDir;
 
-	String lov_title_type = Common.lov_title_type;
-	String lov_column_type = Common.lov_col_type;
+	String lov_title_type = Constant.lov_title_type;
+	String lov_column_type = Constant.lov_col_type;
 
 	private boolean lov_title_flag = true;
 	private boolean lov_col_flag = false;
+	String[][] common_lov = { { "PARAMETER", "系统参数列表" }, { "SAMPLE", "" } };
+	String[][] common_lov_col = { { "PARAMETER", "1", "参数名称" },
+			{ "PARAMETER", "2", "参数描述" } };
 
+	public static final String LovInterfaceTable = "sys_lov_title_interface";
+	public static final String LovColumnInterfaceTable = "sys_lov_column_title_interface";
+	
 	public GetLovMessage() {
 		lovObjects = new ArrayList();
 	}
@@ -185,7 +194,44 @@ public class GetLovMessage {
 			e.printStackTrace();
 		}
 	}
-
+	private void outputLovColumnToDataBase() throws SQLException {
+		String insertSQL = "insert into sys_lov_column_title_interface (batch_id,module_code,function_code,lov_code,column_number,title_zh) values (?,?,?,?,?,?)";
+		Connection dbConnection = DBManager.getDBConnection();
+		PreparedStatement statement = dbConnection.prepareStatement(insertSQL);
+		dbConnection.setAutoCommit(false);
+			for (int i = 0; i < common_lov_col.length; i++) {
+				String[] lovColumn = common_lov_col[i];
+				if (lovColumn[1] != null && !lovColumn[1].equals("")){
+					statement.setInt(1, FormPropertyHandler.batch_id);
+					statement.setString(2, moduleName);
+					statement.setString(3, formName);
+					statement.setString(4, lovColumn[0]);
+					statement.setInt(5, Integer.parseInt(lovColumn[1]));
+					statement.setString(6, lovColumn[2]);
+					statement.executeUpdate();
+				}
+			}
+			String lovCode = null;
+			// String lovTitle = null;
+			ArrayList columnTitles = null;
+			for (int i = 0; i < lovObjects.size(); i++) {
+				LovObject lovObject = (LovObject) lovObjects.get(i);
+				lovCode = lovObject.getLovCode();
+				columnTitles = lovObject.getColumnTitles();
+				for (int j = 0; j < columnTitles.size(); j++) {
+					statement.setInt(1, FormPropertyHandler.batch_id);
+					statement.setString(2, moduleName);
+					statement.setString(3, formName);
+					statement.setString(4, lovCode);
+					statement.setInt(5, (j + 1));
+					statement.setString(6, columnTitles.get(j).toString());
+					statement.executeUpdate();
+				}
+			}
+			statement.close();
+			dbConnection.commit();
+			dbConnection.setAutoCommit(true);	
+	}
 	private void outputLovToCmdConsole() {
 		for (int i = 0; i < common_lov.length; i++) {
 			String[] lov = common_lov[i];
@@ -255,7 +301,43 @@ public class GetLovMessage {
 			e.printStackTrace();
 		}
 	}
+	private void outputLovToDataBase() throws SQLException {
+		String insertSQL = "insert into sys_lov_title_interface (batch_id,module_code,function_code,lov_code,title_zh) values (?,?,?,?,?)";
+		Connection dbConnection = DBManager.getDBConnection();
+		PreparedStatement statement = dbConnection.prepareStatement(insertSQL);
+		dbConnection.setAutoCommit(false);
+			for (int i = 0; i < common_lov.length; i++) {
+				String[] lov = common_lov[i];
+				if (lov[1] != null && !lov[1].equals("")){
+					statement.setInt(1, FormPropertyHandler.batch_id);
+					statement.setString(2, moduleName);
+					statement.setString(3, formName);
+					statement.setString(4, lov[0]);
+					statement.setString(5, lov[1]);
+					statement.executeUpdate();
+				}
+			}
+			String lovCode = null;
+			String lovTitle = null;
+			for (int i = 0; i < lovObjects.size(); i++) {
+				LovObject lovObject = (LovObject) lovObjects.get(i);
+				lovCode = lovObject.getLovCode();
+				lovTitle = lovObject.getLovTitle();
+				if (lovTitle != null && !lovTitle.equals("")){
+					statement.setInt(1, FormPropertyHandler.batch_id);
+					statement.setString(2, moduleName);
+					statement.setString(3, formName);
+					statement.setString(4, lovCode);
+					statement.setString(5, lovTitle);
+					statement.executeUpdate();
+				}
+			}
+			statement.close();
+			dbConnection.commit();
+			dbConnection.setAutoCommit(true);	
+	}
 
+	
 	private void getContent(File level) {
 		try {
 			lovObjects.clear();
@@ -270,11 +352,8 @@ public class GetLovMessage {
 					LovObject(bufferedReader);
 				} else if (outContent.trim().startsWith("MODNAME")) {
 					outContent = bufferedReader.readLine();
-					formName = pickUp(outContent, regEx);
-					// System.out.println(formName);
-					formName = pickUp(formName, FormRegEx);
-					formName = formName.substring(0, formName.indexOf("."));
-					// System.out.println("formName:"+formName);
+					String[] strs = outContent.split(FormPropertyHandler.formNameSpilt);
+					formName = strs[strs.length-1];;
 				}
 			}
 			// System
@@ -286,25 +365,42 @@ public class GetLovMessage {
 		getFormModule();
 		if (lov_title_flag) {
 
-			if (GetFormProperty.outputTo == Common.outputToGUIPanel)
+			if (FormPropertyHandler.outputTo == Constant.outputToGUIPanel)
 				outputLovToGUIPanel();
-			else if (GetFormProperty.outputTo == Common.outputToCmdConsole)
+			else if (FormPropertyHandler.outputTo == Constant.outputToCmdConsole)
 				outputLovToCmdConsole();
-			else
+			else if(FormPropertyHandler.outputTo == Constant.outputToFile)
 				outputLovToFile();
+			else{
+				try {
+					outputLovToDataBase();
+				} catch (SQLException e) {
+					FormPropertyHandler.log(e.getMessage());
+					e.printStackTrace();
+				}
+			}
+				
 		}
 		if (lov_col_flag) {
-			if (GetFormProperty.outputTo == Common.outputToGUIPanel)
+			if (FormPropertyHandler.outputTo == Constant.outputToGUIPanel)
 				outputLovColumnToGUIPanel();
-			else if (GetFormProperty.outputTo == Common.outputToCmdConsole)
+			else if (FormPropertyHandler.outputTo == Constant.outputToCmdConsole)
 				outputLovColumnToCmdConsole();
-			else
+			else if (FormPropertyHandler.outputTo == Constant.outputToFile)
 				outputLovColumnToFile();
+			else {
+				try {
+					outputLovColumnToDataBase();
+				} catch (SQLException e) {
+					FormPropertyHandler.log(e.getMessage());
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
 	public void start() {
-		if (GetFormProperty.outputTo == Common.outputToFile)
+		if (FormPropertyHandler.outputTo == Constant.outputToFile)
 			createDestFile();
 		beginHandle(inputFile);
 	}
@@ -408,7 +504,6 @@ public class GetLovMessage {
 	private void LovColumnObject(LovObject lovObject,
 			BufferedReader bufferedReader) {
 		String outContent;
-		String lovCode;
 		String lovName;
 		try {
 			while ((outContent = bufferedReader.readLine()) != null) {
@@ -451,41 +546,41 @@ public class GetLovMessage {
 		return outContent;
 	}
 
-	private int getLovWidthProperty(BufferedReader bufferedReader) {
-		String outContent = null;
-		int width = 0;
-		try {
-			while ((outContent = bufferedReader.readLine()) != null) {
-				if (outContent.trim().equals("NN = 77")) {
-					return getLovWidth(bufferedReader);
-				}
+//	private int getLovWidthProperty(BufferedReader bufferedReader) {
+//		String outContent = null;
+//		int width = 0;
+//		try {
+//			while ((outContent = bufferedReader.readLine()) != null) {
+//				if (outContent.trim().equals("NN = 77")) {
+//					return getLovWidth(bufferedReader);
+//				}
+//
+//			}
+//		} catch (Exception e) {
+//			// TODO �Զ���� catch ��
+//			e.printStackTrace();
+//		}
+//		return width;
+//	}
 
-			}
-		} catch (Exception e) {
-			// TODO �Զ���� catch ��
-			e.printStackTrace();
-		}
-		return width;
-	}
-
-	private int getLovWidth(BufferedReader bufferedReader) {
-		String outContent = null;
-		int width = 0;
-		try {
-			while ((outContent = bufferedReader.readLine()) != null) {
-				if (outContent.trim().startsWith("NV")) {
-					System.out.println(pickUp(outContent, ".*=\\s*(.*)\\s*"));
-					return Integer.valueOf(
-							pickUp(outContent, ".*=\\s*(.*)\\s*")).intValue();
-				}
-
-			}
-		} catch (Exception e) {
-			// TODO �Զ���� catch ��
-			e.printStackTrace();
-		}
-		return width;
-	}
+//	private int getLovWidth(BufferedReader bufferedReader) {
+//		String outContent = null;
+//		int width = 0;
+//		try {
+//			while ((outContent = bufferedReader.readLine()) != null) {
+//				if (outContent.trim().startsWith("NV")) {
+//					System.out.println(pickUp(outContent, ".*=\\s*(.*)\\s*"));
+//					return Integer.valueOf(
+//							pickUp(outContent, ".*=\\s*(.*)\\s*")).intValue();
+//				}
+//
+//			}
+//		} catch (Exception e) {
+//			// TODO �Զ���� catch ��
+//			e.printStackTrace();
+//		}
+//		return width;
+//	}
 
 	public String pickUp(String str, String regEx) {
 		String selectedString = null;
@@ -497,7 +592,8 @@ public class GetLovMessage {
 
 		Matcher m = p.matcher(str);
 
-		boolean rs = m.find();
+//		boolean rs = m.find();
+		m.find();
 
 		for (int i = 1; i <= m.groupCount(); i++) {
 			selectedString = m.group(i);
@@ -507,8 +603,4 @@ public class GetLovMessage {
 		return selectedString;
 
 	}
-
-	String[][] common_lov = { { "PARAMETER", "ϵͳ�����б�" }, { "SAMPLE", "" } };
-	String[][] common_lov_col = { { "PARAMETER", "1", "�������" },
-			{ "PARAMETER", "2", "��������" } };
 }

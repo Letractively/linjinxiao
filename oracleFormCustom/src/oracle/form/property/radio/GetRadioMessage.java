@@ -1,26 +1,28 @@
 /**
  * 
  */
-package oracle.form.property;
+package oracle.form.property.radio;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import oracle.form.property.Constant;
+import oracle.form.property.DBManager;
+import oracle.form.property.FormPropertyHandler;
+import oracle.form.property.ui.GUI;
 
 /**
  * @author linjinxiao
@@ -44,11 +46,14 @@ public class GetRadioMessage {
 	private String moduleName;
 	String radioGroupCode = "";
 	String blockCode = "";
-	String type = Common.radio_type;
+	String type = Constant.radio_type;
+	public static final String InterfaceTable = "sys_radio_label_interface";
+
 	public GetRadioMessage() {
 		radioGroups = new ArrayList();
 
 	}
+
 	public GetRadioMessage(String inputFileName, String outputFileName) {
 		this.inputFile = new File(inputFileName);
 		this.outputFile = new File(outputFileName);
@@ -62,29 +67,7 @@ public class GetRadioMessage {
 	} // end main method
 
 	private void getFormModule() {
-//		String dataBaseUrl = "jdbc:oracle:thin:mas9i/mas9i@192.168.11.238:1521:masdev";
-//		String driver = "oracle.jdbc.driver.OracleDriver";
-//		try {
-//			Class.forName(driver);
-//			OracleConnection dbConnection = (OracleConnection) DriverManager
-//					.getConnection(dataBaseUrl);
-//			Statement stmt = dbConnection.createStatement();
-//			String sql = "select m.module_code "
-//					+ " from sys_function_vl t, sys_module_vl m "
-//					+ " where t.function_code = " + "'" + formName + "'"
-//					+ " and m.module_id = t.module_id";
-//			ResultSet gdb_batch_jobs_temp_rows = stmt.executeQuery(sql);
-//			while (gdb_batch_jobs_temp_rows.next()) {
-//				moduleName = gdb_batch_jobs_temp_rows.getString(1);
-//				// System.out.println(moduleName);
-//			}
-//			gdb_batch_jobs_temp_rows.close();
-//			stmt.close();
-//			dbConnection.close();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-		if(moduleName ==null || moduleName.equals("")){
+		if (moduleName == null || moduleName.equals("")) {
 			moduleName = formName.substring(0, 3);
 		}
 	}
@@ -106,6 +89,7 @@ public class GetRadioMessage {
 			}
 		}
 	}
+
 	private void outputToGUIPanel() {
 		ArrayList RadioButtons = null;
 		for (int i = 0; i < radioGroups.size(); i++) {
@@ -114,8 +98,8 @@ public class GetRadioMessage {
 			for (int j = 0; j < RadioButtons.size(); j++) {
 				// System.out.println("ACP,ACP306,"+radioCode+","+radioTitle+","+columnTitles.get(j));
 				RadioButton radioButton = (RadioButton) RadioButtons.get(j);
-				GUI.outputContent.append("," + moduleName + "," + formName + ","
-						+ radioGroup.getBlockCode() + ","
+				GUI.outputContent.append("," + moduleName + "," + formName
+						+ "," + radioGroup.getBlockCode() + ","
 						+ radioGroup.getRadioCode() + ","
 						+ radioButton.getRadioButtonCode() + ","
 						+ radioButton.getRadioButtonTitle() + ",");
@@ -146,9 +130,35 @@ public class GetRadioMessage {
 			}
 			out.close();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
+	}
+
+	private void outputToDataBase() throws SQLException {
+		String insertSQL = "insert into sys_radio_label_interface (batch_id,module_code,function_code,block_code,item_code,radio_code,label_zh) values (?,?,?,?,?,?,?)";
+		Connection dbConnection = DBManager.getDBConnection();
+		PreparedStatement statement = dbConnection.prepareStatement(insertSQL);
+		dbConnection.setAutoCommit(false);
+		ArrayList RadioButtons = null;
+		for (int i = 0; i < radioGroups.size(); i++) {
+			RadioGroup radioGroup = (RadioGroup) radioGroups.get(i);
+			RadioButtons = radioGroup.getRadioButtons();
+			for (int j = 0; j < RadioButtons.size(); j++) {
+				// System.out.println("ACP,ACP306,"+radioCode+","+radioTitle+","+columnTitles.get(j));
+				RadioButton radioButton = (RadioButton) RadioButtons.get(j);
+				statement.setInt(1, FormPropertyHandler.batch_id);
+				statement.setString(2, moduleName);
+				statement.setString(3, formName);
+				statement.setString(4, radioGroup.getBlockCode());
+				statement.setString(5, radioGroup.getRadioCode());
+				statement.setString(6, radioButton.getRadioButtonCode());
+				statement.setString(7, radioButton.getRadioButtonTitle());
+				statement.executeQuery();
+			}
+		}
+		dbConnection.commit();
+		dbConnection.setAutoCommit(true);
 
 	}
 
@@ -171,18 +181,14 @@ public class GetRadioMessage {
 					String radio_group = getName(bufferedReader);
 					if (radio_group.equals("WHEN-RADIO-CHANGED"))
 						RadioObject(bufferedReader);
-				}else if (outContent.trim().equals("IDFOS_TYP = 94")) {
+				} else if (outContent.trim().equals("IDFOS_TYP = 94")) {
 					String radio_group = getName(bufferedReader);
 					if (radio_group.equals("RADIO_GROUP"))
 						RadioObject(bufferedReader);
-				} 
-				else if (outContent.trim().startsWith("MODNAME")) {
+				} else if (outContent.trim().startsWith("MODNAME")) {
 					outContent = bufferedReader.readLine();
-					formName = pickUp(outContent, regEx);
-					// System.out.println(formName);
-					formName = pickUp(formName, FormRegEx);
-					formName = formName.substring(0, formName.indexOf("."));
-					// System.out.println("formName:"+formName);
+					String[] strs = outContent.split(FormPropertyHandler.formNameSpilt);
+					formName = strs[strs.length-1];
 				}
 			}
 			// System
@@ -192,16 +198,25 @@ public class GetRadioMessage {
 			e.printStackTrace();
 		}
 		getFormModule();
-		if(GetFormProperty.outputTo == Common.outputToGUIPanel)
+		if (FormPropertyHandler.outputTo == Constant.outputToGUIPanel)
 			outputToGUIPanel();
-		else if (GetFormProperty.outputTo == Common.outputToCmdConsole)
+		else if (FormPropertyHandler.outputTo == Constant.outputToCmdConsole)
 			outputToCmdConsole();
-		else
+		else if (FormPropertyHandler.outputTo == Constant.outputToFile) {
 			outputToFile();
+		}else{
+			try {
+				outputToDataBase();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				FormPropertyHandler.log(e.getMessage());
+			}
+		}
 	}
+		
 
 	public void start() {
-		if (GetFormProperty.outputTo == Common.outputToFile)
+		if (FormPropertyHandler.outputTo == Constant.outputToFile)
 			createDestFile();
 		beginHandle(inputFile);
 	}
@@ -214,8 +229,7 @@ public class GetRadioMessage {
 						&& nextLevel[i].getName().endsWith(".fmt")) {
 					System.out.println(nextLevel[i]);
 					getContent(nextLevel[i]);
-				}
-				else if(nextLevel[i].isDirectory()){
+				} else if (nextLevel[i].isDirectory()) {
 					beginHandle(nextLevel[i]);
 				}
 			}
@@ -223,6 +237,7 @@ public class GetRadioMessage {
 			getContent(level);
 
 	}
+
 	private void createDestFile() {
 		String fileName = inputFile.getName();
 		if (outputFile == null)
@@ -232,7 +247,8 @@ public class GetRadioMessage {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 		Date date = new Date();
 		String dateString = dateFormat.format(date);
-		String outputFileName = fileName +"_" +type + "_" +dateString + ".csv";
+		String outputFileName = fileName + "_" + type + "_" + dateString
+				+ ".csv";
 		try {
 			if (outputFile.isDirectory())
 				outputFile = new File(outputFile.getAbsolutePath() + "/"
@@ -266,16 +282,16 @@ public class GetRadioMessage {
 					String IDFOS_TYP = outContent.trim();
 					if (IDFOS_TYP.equals("IDFOS_TYP = 62")) {
 						RadioButton(radioGroup, bufferedReader);
-					} 
-//						else if (IDFOS_TYP.equals("IDFOS_TYP = 63")) {
-//
-//					} else if (IDFOS_TYP.equals("IDFOS_TYP = 68")) {
-//
-//					} else if (IDFOS_TYP.equals("IDFOS_TYP = 69")) {
-//
-//					} else
-//						break;
-				}else if (outContent.trim().equals("ON = 136")) {
+					}
+					// else if (IDFOS_TYP.equals("IDFOS_TYP = 63")) {
+					//
+					// } else if (IDFOS_TYP.equals("IDFOS_TYP = 68")) {
+					//
+					// } else if (IDFOS_TYP.equals("IDFOS_TYP = 69")) {
+					//
+					// } else
+					// break;
+				} else if (outContent.trim().equals("ON = 136")) {
 					break;
 				}
 			}
@@ -284,6 +300,7 @@ public class GetRadioMessage {
 			e.printStackTrace();
 		}
 	}
+
 	private void RadioButton(RadioGroup radioGroup,
 			BufferedReader bufferedReader) {
 		String outContent;
@@ -342,8 +359,8 @@ public class GetRadioMessage {
 
 		Matcher m = p.matcher(str);
 
-		boolean rs = m.find();
-
+		// boolean rs = m.find();
+		m.find();
 		for (int i = 1; i <= m.groupCount(); i++) {
 			selectedString = m.group(i);
 			// System.out.println(m.group(i));

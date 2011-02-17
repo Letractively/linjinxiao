@@ -1,7 +1,7 @@
 /**
  * 
  */
-package oracle.form.property;
+package oracle.form.property.radio;
 
 import java.util.ArrayList;
 

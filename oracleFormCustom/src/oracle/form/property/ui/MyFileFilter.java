@@ -1,4 +1,4 @@
-package oracle.form.property;
+package oracle.form.property.ui;
 
 import java.io.File;
 

@@ -1,26 +1,28 @@
+package oracle.form.property.item;
+
 /**
  * 
  */
-package oracle.form.property;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import oracle.form.property.Constant;
+import oracle.form.property.DBManager;
+import oracle.form.property.FormPropertyHandler;
+import oracle.form.property.ui.GUI;
 
 /**
  * @author linjinxiao
@@ -33,16 +35,17 @@ public class GetItemDesc {
 	 */
 	// ACP ACR AST BGT CIMCINV CIMCORD CSH CST ENG EXP FND FRS GLD
 	// INV MDM MWF ORD OTHER PLN PUR QMS SFC SYS
-	File inputFile = new File("C:/Documents and Settings/hand/Desktop/dl/����/set_property/FMB��FMT/fmt/ACP/ACP551.fmt");
+	File inputFile = new File("C:/Documents and Settings/hand/Desktop/dl/程序/set_property/FMB和FMT/fmt/ACP/ACP551.fmt");
 	File outputFile;
 
+	public static final String interfaceTable = "sys_item_desc_interface";
 	private String regEx = ".*\"(.*)\".*";
 	String FormRegEx = ".+\\\\(.+)$";
 	private ArrayList items;
 	private String formName;
 	private String moduleName;
 	private String blockCode;
-	private String type = Common.item_desc_type;
+	private String type = Constant.item_desc_type;
 	
 	public GetItemDesc() {
 		items = new ArrayList();
@@ -65,7 +68,7 @@ public class GetItemDesc {
 	}
 
 	private void beginHandle(File level) {
-		if (GetFormProperty.outputTo == Common.outputToFile)
+		if (FormPropertyHandler.outputTo == Constant.outputToFile)
 			createDestFile();
 		if (level.isDirectory()) {
 			File[] nextLevel = level.listFiles();
@@ -131,9 +134,11 @@ public class GetItemDesc {
 					createObject(bufferedReader);
 				} else if (outContent.trim().startsWith("MODNAME")) {
 					outContent = bufferedReader.readLine();
-					formName = pickUp(outContent, regEx);
-					formName = pickUp(formName, FormRegEx);
-					formName = formName.substring(0, formName.indexOf("."));
+					String[] strs = outContent.split(FormPropertyHandler.formNameSpilt);
+					formName = strs[strs.length-1];
+//					formName = pickUp(outContent, regEx);
+//					formName = pickUp(formName, FormRegEx);
+//					formName = formName.substring(0, formName.indexOf("."));
 				}
 			}
 			fis.close();
@@ -141,12 +146,19 @@ public class GetItemDesc {
 			e.printStackTrace();
 		}
 		getFormModule();
-		if(GetFormProperty.outputTo == Common.outputToGUIPanel)
+		if(FormPropertyHandler.outputTo == Constant.outputToGUIPanel)
 			outputToGUIPanel();
-		else if (GetFormProperty.outputTo == Common.outputToCmdConsole)
+		else if (FormPropertyHandler.outputTo == Constant.outputToCmdConsole)
 			outputToCmdConsole();
-		else
+		else if (FormPropertyHandler.outputTo == Constant.outputToFile)
 			outputToFile();
+		else
+			try {
+				outputToDataBase();
+			} catch (SQLException e) {
+				FormPropertyHandler.log(e.getMessage());
+				e.printStackTrace();
+			}
 	}
 
 	private void createObject(BufferedReader bufferedReader) {
@@ -177,7 +189,7 @@ public class GetItemDesc {
 				}
 			}
 		} catch (Exception e) {
-			// TODO �Զ���� catch ��
+			// TODO 自动生成 catch 块
 			e.printStackTrace();
 		}
 	}
@@ -235,6 +247,36 @@ public class GetItemDesc {
 		}
 
 	}
+	private void outputToDataBase()  throws SQLException{
+		String insertSQL = "insert into sys_item_desc_interface (BATCH_ID,MODULE_CODE,FUNCTION_CODE,BLOCK_CODE,ITEM_CODE,ITEM_DESC_ZH) values (?,?,?,?,?,?)";
+		Connection dbConnection = DBManager.getDBConnection();
+		PreparedStatement statement = dbConnection.prepareStatement(insertSQL);
+		dbConnection.setAutoCommit(false);
+		for (int i = 0; i < common_item.length; i++) {
+			String[] item = common_item[i];
+			statement.setInt(1, FormPropertyHandler.batch_id);
+			statement.setString(2, moduleName);
+			statement.setString(3, formName);
+			statement.setString(4, item[0]);
+			statement.setString(5, item[1]);
+			statement.setString(6, item[2]);
+			statement.executeUpdate();
+		}
+		for (int i = 0; i < items.size(); i++) {
+			Item item = (Item) items.get(i);
+			statement.setInt(1, FormPropertyHandler.batch_id);
+			statement.setString(2, moduleName);
+			statement.setString(3, formName);
+			statement.setString(4, item.getBlockCode());
+			statement.setString(5, item.getItemCode());
+			statement.setString(6, item.getItemTitle());
+			statement.execute();
+		}
+		statement.close();
+		dbConnection.commit();
+		dbConnection.setAutoCommit(true);
+		
+	}
 
 	private String getName(BufferedReader bufferedReader) {
 		String outContent = "";
@@ -252,7 +294,7 @@ public class GetItemDesc {
 							&& !outContent.endsWith(">>")) {
 						returnStr = returnStr
 								+ pickUp(outContent, preRegEx).trim();
-						// �������е�����
+						// 处理带分行的描述
 						while ((outContent = bufferedReader.readLine()) != null) {
 							if ((!outContent.startsWith("TV = <<"))
 									&& outContent.endsWith(">>")) {
@@ -271,7 +313,7 @@ public class GetItemDesc {
 
 			}
 		} catch (Exception e) {
-			// TODO �Զ���� catch ��
+			// TODO 自动生成 catch 块
 			e.printStackTrace();
 		}
 		return outContent;
@@ -287,8 +329,8 @@ public class GetItemDesc {
 
 		Matcher m = p.matcher(str);
 
-		boolean rs = m.find();
-
+//		boolean rs = m.find();
+		m.find();
 		for (int i = 1; i <= m.groupCount(); i++) {
 			selectedString = m.group(i);
 			// System.out.println(m.group(i));
@@ -300,7 +342,7 @@ public class GetItemDesc {
 
 	private void getFormModule() {
 		// String dataBaseUrl =
-		// "jdbc:oracle:thin:mas9i/mas9i@192.168.11.238:1521:masdev";
+		// "jdbc:oracle:thin:mas9i/mas9i@192.168.11.65:1521:masdev";
 		// String driver = "oracle.jdbc.driver.OracleDriver";
 		// try {
 		// Class.forName(driver);
@@ -327,29 +369,29 @@ public class GetItemDesc {
 		}
 	}
 
-	String[][] common_item = { { "ITEM_INFO", "TRIGGER_BLOCK", "��ݿ�", "" },
-			{ "ITEM_INFO", "TRIGGER_ITEM", "�����", "" },
-			{ "ITEM_INFO", "LOV_NAME", "ֵ�б����", "" },
-			{ "ITEM_INFO", "GROUP_NAME", "��¼�����", "" },
-			{ "ITEM_INFO", "BLOCK_SOURCE_NAME", "���4Դ", "" },
-			{ "ITEM_INFO", "BLOCK_WHERE_CLAUSE", "��ѯ���", "" },
-			{ "ITEM_INFO", "BLOCK_ORDER_BY_CLAUSE", "�������", "" },
-			{ "ITEM_INFO", "OK", "����", "" }, { "VERSION", "CONTENT", "", "" },
-			{ "VERSION", "BACK", "ȷ��", "" },
-			{ "EXPORT_STATUS", "BEGIN_EXPORT", "��ʼ����", "" },
-			{ "EXPORT_STATUS", "CANCEL", "ȡ��", "" },
+	String[][] common_item = { { "ITEM_INFO", "TRIGGER_BLOCK", "数据块", "" },
+			{ "ITEM_INFO", "TRIGGER_ITEM", "数据域", "" },
+			{ "ITEM_INFO", "LOV_NAME", "值列表名称", "" },
+			{ "ITEM_INFO", "GROUP_NAME", "记录组名称", "" },
+			{ "ITEM_INFO", "BLOCK_SOURCE_NAME", "数据来源", "" },
+			{ "ITEM_INFO", "BLOCK_WHERE_CLAUSE", "查询条件", "" },
+			{ "ITEM_INFO", "BLOCK_ORDER_BY_CLAUSE", "排序条件", "" },
+			{ "ITEM_INFO", "OK", "返回", "" }, { "VERSION", "CONTENT", "", "" },
+			{ "VERSION", "BACK", "确定", "" },
+			{ "EXPORT_STATUS", "BEGIN_EXPORT", "开始导出", "" },
+			{ "EXPORT_STATUS", "CANCEL", "取消", "" },
 			{ "SYS_PARAM_INFO", "SYS_PARAMETERS", "", "" },
-			{ "SYS_PARAM_INFO", "NEW_PARAMETER", "����Ҫ��ѯ��ϵͳ����", "" },
-			{ "SYS_PARAM_INFO", "CONFIRM", "ȷ��", "" },
-			{ "SYS_PARAM_INFO", "QUERY", "��ѯ", "" },
-			{ "RECORD_HISTORY", "CREATED_BY", "������", "" },
-			{ "RECORD_HISTORY", "CREATION_DATE", "��������", "" },
-			{ "RECORD_HISTORY", "LAST_UPDATED_BY", "������", "" },
-			{ "RECORD_HISTORY", "LAST_UPDATE_DATE", "��������", "" },
-			{ "RECORD_HISTORY", "TABLE_NAME", "����", "" },
-			{ "RECORD_HISTORY", "OK", "ȷ��", "" },
-			{ "DATE_CONTROL_BLOCK", "OK_BUTTON", "ȷ��", "" },
-			{ "DATE_CONTROL_BLOCK", "CANCEL_BUTTON", "ȡ��", "" },
+			{ "SYS_PARAM_INFO", "NEW_PARAMETER", "输入要查询的系统参数", "" },
+			{ "SYS_PARAM_INFO", "CONFIRM", "确认", "" },
+			{ "SYS_PARAM_INFO", "QUERY", "查询", "" },
+			{ "RECORD_HISTORY", "CREATED_BY", "创建者", "" },
+			{ "RECORD_HISTORY", "CREATION_DATE", "创建日期", "" },
+			{ "RECORD_HISTORY", "LAST_UPDATED_BY", "更新者", "" },
+			{ "RECORD_HISTORY", "LAST_UPDATE_DATE", "更新日期", "" },
+			{ "RECORD_HISTORY", "TABLE_NAME", "表名", "" },
+			{ "RECORD_HISTORY", "OK", "确定", "" },
+			{ "DATE_CONTROL_BLOCK", "OK_BUTTON", "确定", "" },
+			{ "DATE_CONTROL_BLOCK", "CANCEL_BUTTON", "取消", "" },
 			{ "DATE_CONTROL_BLOCK", "MONTH_PLUS1", ">", "" },
 			{ "DATE_CONTROL_BLOCK", "YEAR_PLUS1", ">>", "" },
 			{ "DATE_CONTROL_BLOCK", "YEAR_MINUS1", "<<", "" },

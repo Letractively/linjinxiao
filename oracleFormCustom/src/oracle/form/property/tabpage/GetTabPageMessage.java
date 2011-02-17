@@ -1,25 +1,28 @@
 /**
  * 
  */
-package oracle.form.property;
+package oracle.form.property.tabpage;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import oracle.form.property.Constant;
+import oracle.form.property.DBManager;
+import oracle.form.property.FormPropertyHandler;
+import oracle.form.property.ui.GUI;
 
 
 /**
@@ -44,8 +47,10 @@ public class GetTabPageMessage {
 	private String moduleName;
 
 	String canvasCode = "";
-	String type = Common.form_tab_type;
+	String type = Constant.form_tab_type;
 
+	public static final String InterfaceTable = "sys_tab_page_label_interface";
+	
 	public GetTabPageMessage() {
 		canvases = new ArrayList();
 
@@ -169,11 +174,8 @@ public class GetTabPageMessage {
 					canvas(bufferedReader);
 				} else if (outContent.trim().startsWith("MODNAME")) {
 					outContent = bufferedReader.readLine();
-					formName = pickUp(outContent, regEx);
-					// System.out.println(formName);
-					formName = pickUp(formName, FormRegEx);
-					formName = formName.substring(0, formName.indexOf("."));
-					// System.out.println("formName:"+formName);
+					String[] strs = outContent.split(FormPropertyHandler.formNameSpilt);
+					formName = strs[strs.length-1];
 				}
 			}
 			// System
@@ -183,16 +185,53 @@ public class GetTabPageMessage {
 			e.printStackTrace();
 		}
 		getFormModule();
-		if (GetFormProperty.outputTo == Common.outputToGUIPanel)
+		if (FormPropertyHandler.outputTo == Constant.outputToGUIPanel)
 			outputToGUIPanel();
-		else if (GetFormProperty.outputTo == Common.outputToCmdConsole)
+		else if (FormPropertyHandler.outputTo == Constant.outputToCmdConsole)
 			outputToCmdConsole();
-		else
+		else if (FormPropertyHandler.outputTo == Constant.outputToFile){
 			outputToFile();
+		}
+		else{
+			try {
+				outputToDataBase();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				FormPropertyHandler.log(e.getMessage());
+			}
+		}
+	}
+
+	private void outputToDataBase() throws SQLException {
+		String insertSQL = "insert into sys_tab_page_label_interface (batch_id,module_code,function_code,canvas_code,tab_page_code,label_zh) values (?,?,?,?,?,?)";
+		Connection dbConnection = DBManager.getDBConnection();
+		PreparedStatement statement = dbConnection.prepareStatement(insertSQL);
+		dbConnection.setAutoCommit(false);
+		String canvasCode = null;
+		ArrayList tabPages = null;
+		for (int i = 0; i < canvases.size(); i++) {
+			Canvas canvas = (Canvas) canvases.get(i);
+			canvasCode = canvas.getCanvasCode();
+			tabPages = canvas.getTabPageTitles();
+			for (int j = 0; j < tabPages.size(); j++) {
+				TabPage tabPage = (TabPage) tabPages.get(j);
+				statement.setInt(1, FormPropertyHandler.batch_id);
+				statement.setString(2, moduleName);
+				statement.setString(3, formName);
+				statement.setString(4, canvasCode);
+				statement.setString(5, tabPage.getCode());
+				statement.setString(6, tabPage.getTitle());
+				statement.executeUpdate();
+			}
+		}
+		statement.close();
+		dbConnection.commit();
+		dbConnection.setAutoCommit(true);
+		
 	}
 
 	public void start() {
-		if (GetFormProperty.outputTo == Common.outputToFile)
+		if (FormPropertyHandler.outputTo == Constant.outputToFile)
 			createDestFile();
 		beginHandle(inputFile);
 	}
@@ -309,8 +348,8 @@ public class GetTabPageMessage {
 
 		Matcher m = p.matcher(str);
 
-		boolean rs = m.find();
-
+//		boolean rs = m.find();
+		m.find();
 		for (int i = 1; i <= m.groupCount(); i++) {
 			selectedString = m.group(i);
 			// System.out.println(m.group(i));

@@ -1,25 +1,28 @@
 /**
  * 
  */
-package oracle.form.property;
+package oracle.form.property.window;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import oracle.form.property.Constant;
+import oracle.form.property.DBManager;
+import oracle.form.property.FormPropertyHandler;
+import oracle.form.property.ui.GUI;
 
 
 /**
@@ -43,12 +46,17 @@ public class GetWindowMessage {
 	private String moduleName;
 	private String windowCode;
 
-	String type = Common.form_title_type;
+	String type = Constant.form_title_type;
 	
-	String[][] common_windows = { { "ITEM_INFO", "��ǰ����Ϣ" },
-			{ "VERSION", "�汾��Ϣ" }, { "SYS_PARAMETERS", "ϵͳ����" },
-			{ "DATE_LOV_WINDOW", "����" }, { "EXPORT_STATUS", "" },
-			{ "RECORD_HISTORY", "��¼��ʷ" } };
+	private static final String[][] common_windows = 
+			{ 
+				{ "ITEM_INFO", "当前域信息","Current Field Information"},
+				{ "VERSION", "版本信息","Version Information" }, 
+				{ "SYS_PARAMETERS", "系统参数","System Parameter" },
+				{ "DATE_LOV_WINDOW", "日历","Calendar" },
+				{ "EXPORT_STATUS", "EXPORT_STATUS","Export Status" },
+				{ "RECORD_HISTORY", "记录历史","Record History" } 
+			};
 	public GetWindowMessage(String inputFileName, String outputFileName) {
 		this.inputFile = new File(inputFileName);
 		this.outputFile = new File(outputFileName);
@@ -66,7 +74,7 @@ public class GetWindowMessage {
 	} // end main method
 
 	public void start() {
-		if (GetFormProperty.outputTo == Common.outputToFile)
+		if (FormPropertyHandler.outputTo == Constant.outputToFile)
 			createDestFile();
 		beginHandle(inputFile);
 	}
@@ -134,11 +142,8 @@ public class GetWindowMessage {
 					createObject(bufferedReader);
 				} else if (outContent.trim().startsWith("MODNAME")) {
 					outContent = bufferedReader.readLine();
-					formName = pickUp(outContent, regEx);
-					// System.out.println(formName);
-					formName = pickUp(formName, FormRegEx);
-					formName = formName.substring(0, formName.indexOf("."));
-					// System.out.println("formName:"+formName);
+					String[] strs = outContent.split(FormPropertyHandler.formNameSpilt);
+					formName = strs[strs.length-1];
 				}
 			}
 			// System
@@ -148,14 +153,43 @@ public class GetWindowMessage {
 			e.printStackTrace();
 		}
 		getFormModule();
-		if(GetFormProperty.outputTo == Common.outputToGUIPanel)
+		if(FormPropertyHandler.outputTo == Constant.outputToGUIPanel)
 			outputToGUIPanel();
-		else if (GetFormProperty.outputTo == Common.outputToCmdConsole)
+		else if (FormPropertyHandler.outputTo == Constant.outputToCmdConsole)
 			outputToCmdConsole();
-		else
+		else if (FormPropertyHandler.outputTo == Constant.outputToFile){
 			outputToFile();
+		}
+		else{
+			try {
+				outputToDataBase();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				FormPropertyHandler.log(e.getMessage());
+			}
+		}
 	}
 
+	private void outputToDataBase() throws SQLException {
+		String insertSQL = "insert into sys_window_title_interface (batch_id,module_code,function_code,window_code,title_zh) values (?,?,?,?,?)";
+		Connection dbConnection = DBManager.getDBConnection();
+		PreparedStatement statement = dbConnection.prepareStatement(insertSQL);
+		dbConnection.setAutoCommit(false);
+		for (int i = 0; i < windowGroups.size(); i++) {
+			Window window = (Window) windowGroups.get(i);
+			statement.setInt(1, FormPropertyHandler.batch_id);
+			statement.setString(2, moduleName);
+			statement.setString(3, formName);
+			statement.setString(4, window.getCode());
+			statement.setString(5, window.getTitle());
+			statement.executeUpdate();
+		}
+		statement.close();
+		dbConnection.commit();
+		dbConnection.setAutoCommit(true);
+		
+	}
+	
 	private void initWindowGroups() {
 		for(int i=0;i<common_windows.length;i++){
 			String[] windowProperty =  common_windows[i];
@@ -220,9 +254,6 @@ public class GetWindowMessage {
 		try {
 			PrintStream out = new PrintStream(new FileOutputStream(outputFile,
 					true));
-
-			String radioGoupCode = null;
-			ArrayList RadioButtons = null;
 			for (int i = 0; i < windowGroups.size(); i++) {
 				Window window = (Window) windowGroups.get(i);
 				out.println("," + moduleName + "," + formName + ","
@@ -262,8 +293,8 @@ public class GetWindowMessage {
 
 		Matcher m = p.matcher(str);
 
-		boolean rs = m.find();
-
+//		boolean rs = m.find();
+		m.find();
 		for (int i = 1; i <= m.groupCount(); i++) {
 			selectedString = m.group(i);
 			// System.out.println(m.group(i));

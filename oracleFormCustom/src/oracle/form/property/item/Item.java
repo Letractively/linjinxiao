@@ -1,9 +1,8 @@
 /**
  * 
  */
-package oracle.form.property;
+package oracle.form.property.item;
 
-import java.util.ArrayList;
 
 /**
  * @author linjinxiao

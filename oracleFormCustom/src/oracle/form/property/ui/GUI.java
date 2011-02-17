@@ -1,7 +1,7 @@
 /**
  * 
  */
-package oracle.form.property;
+package oracle.form.property.ui;
 
 import java.awt.Container;
 import java.awt.FlowLayout;
@@ -22,6 +22,9 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileFilter;
 
+import oracle.form.property.Constant;
+import oracle.form.property.FormPropertyHandler;
+
 /**
  * @author linjinxiao
  * 
@@ -29,13 +32,17 @@ import javax.swing.filechooser.FileFilter;
 public class GUI extends JFrame implements ActionListener {
 
 	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 2185142061012172678L;
+	/**
 	 * @param args
 	 */
 	JButton inputFileButton;
 	TextField inputFileField;
 
 	 
-	String[] switchContol = new String[] { Common.outputToFile, Common.outputToGUIPanel };
+	String[] switchContol = new String[] { Constant.outputToFile, Constant.outputToGUIPanel };
 	JComboBox outputSwitchBox;
 
 	JButton outputFileButton;
@@ -86,20 +93,20 @@ public class GUI extends JFrame implements ActionListener {
 		outputSwitchBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (((JComboBox) e.getSource()).getSelectedItem().equals(
-						Common.outputToFile)) {
+						Constant.outputToFile)) {
 					outputFileButton.setVisible(true);
 					outputFileField.setVisible(true);
 					outputContent.setVisible(false);
 					blankLable.setVisible(false);
-					GetFormProperty.outputTo = Common.outputToFile; 
+					FormPropertyHandler.outputTo = Constant.outputToFile; 
 				}
 				if (((JComboBox) e.getSource()).getSelectedItem().equals(
-						Common.outputToGUIPanel)) {
+						Constant.outputToGUIPanel)) {
 					outputFileButton.setVisible(false);
 					outputFileField.setVisible(false);
 					outputContent.setVisible(true);
 					blankLable.setVisible(true);
-					GetFormProperty.outputTo = Common.outputToGUIPanel; 
+					FormPropertyHandler.outputTo = Constant.outputToGUIPanel; 
 				}
 			}
 		});
@@ -129,7 +136,7 @@ public class GUI extends JFrame implements ActionListener {
 
 		outputContent.setVisible(false);
 		blankLable.setVisible(false);
-		GetFormProperty.outputTo = Common.outputToFile; 
+		FormPropertyHandler.outputTo = Constant.outputToFile; 
 		
 		setSize(800, 400);
 		setVisible(true);
@@ -203,8 +210,7 @@ public class GUI extends JFrame implements ActionListener {
 			}else
 				formProperties[5][1] = "false";
 			outputContent.setText("");
-			GetFormProperty GetFormProperty = new GetFormProperty(
-					inputFileName, outputFileName, formProperties);
+			FormPropertyHandler GetFormProperty = new FormPropertyHandler(null);
 			GetFormProperty.start();
 			JOptionPane.showMessageDialog(null, "ִ�н���", "OK",
 					JOptionPane.PLAIN_MESSAGE);
