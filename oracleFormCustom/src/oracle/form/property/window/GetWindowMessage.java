@@ -165,7 +165,6 @@ public class GetWindowMessage {
 				outputToDataBase();
 			} catch (SQLException e) {
 				e.printStackTrace();
-				FormPropertyHandler.log(e.getMessage());
 			}
 		}
 	}

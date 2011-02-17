@@ -156,7 +156,6 @@ public class GetItemDesc {
 			try {
 				outputToDataBase();
 			} catch (SQLException e) {
-				FormPropertyHandler.log(e.getMessage());
 				e.printStackTrace();
 			}
 	}

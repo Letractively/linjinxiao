@@ -375,7 +375,6 @@ public class GetLovMessage {
 				try {
 					outputLovToDataBase();
 				} catch (SQLException e) {
-					FormPropertyHandler.log(e.getMessage());
 					e.printStackTrace();
 				}
 			}

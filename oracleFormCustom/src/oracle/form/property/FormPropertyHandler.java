@@ -3,11 +3,7 @@
  */
 package oracle.form.property;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Calendar;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,10 +30,8 @@ public class FormPropertyHandler {
 			{ "getWindowTitle", "true" }, { "getTabPageTitle", "true" },
 			{ "getLovTitle", "true" }, { "getLovColumnTitle", "true" },
 			{ "getRadioDesc", "true" } };
-	private static FileOutputStream logFOS;
 	// ACP ACR AST BGT CIMCINV CIMCORD CSH CST ENG EXP FND FRS GLD
 	// INV MDM MWF ORD OTHER PLN PUR QMS SFC SYS
-	private static final String LineSeparator = System.getProperty("line.separator");
 	private static final String fmtFileExtension = "fmt";
 	private List fmbList;
 	public static final String formNameSpilt = "\"|>>|\\.|\\\\|\\/|fmt";
@@ -45,12 +39,6 @@ public class FormPropertyHandler {
 		
 //		if(args == null||args.length==0)
 //			args = new String[]{"jdbc:oracle:thin:mas9i/mas9i@192.168.11.65:1521:masdev","1","CSH526.fmt","ACP301.fmt"};
-		
-		try {
-			logFOS = createFile(createFileName());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 		if(args == null ||args.length <=0){
 			log("no fmt ");
 			return ;
@@ -86,41 +74,13 @@ public class FormPropertyHandler {
 			DBManager.getDBConnection().close();
 		} catch (SQLException e) {
 			e.printStackTrace();
-			log(e.getMessage());
 		}
 		System.out.println("done..");
 
 	}
-	private static FileOutputStream createFile(String fileName) throws IOException{
-		if(fileName == null)
-			return null;
-		File newFile = new  File(fileName);
-		if(!newFile.exists()){
-			newFile.createNewFile();
-		}
-		return new FileOutputStream(newFile, true);
-	}
 	public static void log(String message){
-		try {
-			logFOS.write(Calendar.getInstance().getTime().toString().getBytes());
-			logFOS.write(message.getBytes());
-			logFOS.write(LineSeparator.getBytes());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		System.out.println(message);
 	}
-	private static String createFileName(){
-		String seperator ="-"; 
-		String time = Calendar.getInstance().get(Calendar.YEAR)+seperator+Calendar.getInstance().get(Calendar.MONTH)
-		+seperator+Calendar.getInstance().get(Calendar.DATE)+"_"+Calendar.getInstance().get(Calendar.HOUR_OF_DAY)+seperator+Calendar.getInstance().get(Calendar.MINUTE)+
-		seperator+Calendar.getInstance().get(Calendar.SECOND);
-		return "FormPropertyHandler_"+time+".log";
-	}
-
-	public FormPropertyHandler() {
-
-	}
-
 	public FormPropertyHandler(List fmbList) {
 		this.fmbList = fmbList;
 	}

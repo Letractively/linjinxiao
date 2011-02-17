@@ -197,7 +197,6 @@ public class GetTabPageMessage {
 				outputToDataBase();
 			} catch (SQLException e) {
 				e.printStackTrace();
-				FormPropertyHandler.log(e.getMessage());
 			}
 		}
 	}
