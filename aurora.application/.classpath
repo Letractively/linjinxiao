@@ -6,5 +6,6 @@
 	<classpathentry kind="lib" path="lib/quartz.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/aurora"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/uncertain"/>
+	<classpathentry kind="lib" path="lib/servlet-api.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
