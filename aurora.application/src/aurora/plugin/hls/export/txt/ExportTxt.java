@@ -1,6 +1,7 @@
 package aurora.plugin.hls.export.txt;
 
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -27,6 +28,7 @@ public class ExportTxt extends AbstractEntry {
 	public String KEY_CHARSET = "GBK";
 	private ILogger mLogger;
 	public String FileName = "file";
+	public String FileExtension = "txt";
 	public String Separator = ",";
 	public String Sql;
 	private DatabaseServiceFactory databasefactory;
@@ -56,23 +58,37 @@ public class ExportTxt extends AbstractEntry {
 			Connection conn = ssc.getConnection();
 			mLogger.log(Level.INFO, "get HttpServletResponse");
 			HttpServletResponse response = serviceInstance.getResponse();
-//			pw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(response.getOutputStream(), KEY_CHARSET)));
-			response.setContentType("txt");
+			// pw = new PrintWriter(new BufferedWriter(new
+			// OutputStreamWriter(response.getOutputStream(), KEY_CHARSET)));
 			response.setCharacterEncoding(KEY_CHARSET);
-			response.setHeader("Content-Disposition", "attachment; filename=\"" + FileName + ".txt\"");
+			String file_name = FileName;
+			try {
+				file_name = new String(FileName.getBytes(), "ISO-8859-1");
+			} catch (UnsupportedEncodingException e) {
+				mLogger.log(Level.INFO, "", e);
+			}
 			pw = response.getWriter();
 			statment = conn.createStatement();
-			mLogger.log(Level.INFO, "executeQuery sql");
+			mLogger.log(Level.INFO, "executeQuery sql" + Sql);
 			rs = statment.executeQuery(Sql);
 			String[] columns = createColumnProperties(rs);
+			int count = 0;
 			while (rs.next()) {
+				count++;
 				for (int i = 0; i < columns.length; i++) {
 					Object obj = rs.getObject(columns[i]);
-					if(obj == null)
+					if (obj == null)
 						obj = "";
 					pw.append(obj.toString()).append(Separator);
 				}
 				pw.println();
+			}
+			if (count == 0) {
+				mLogger.log(Level.INFO, "no data found.");
+				alertMessage(pw,"没有数据");
+			}else{
+				response.setContentType("txt");
+				response.setHeader("Content-Disposition", "attachment; filename=\"" + file_name + "." + FileExtension+ "\"");
 			}
 		} finally {
 			if (rs != null)
@@ -97,10 +113,12 @@ public class ExportTxt extends AbstractEntry {
 		if (Separator == null && "".equals(Separator))
 			throw new IllegalArgumentException("Separator is undefined");
 		Separator = TextParser.parse(Separator, context);
+		FileExtension = TextParser.parse(FileExtension, context);
 	}
 	public String toString() {
 		CompositeMap invoke = new CompositeMap("txt", "aurora.plugin.export.txt", "export-txt");
 		invoke.put("FileName", this.FileName);
+		invoke.put("FileExtension", this.FileExtension);
 		invoke.put("Separator", this.Separator);
 		invoke.put("Sql", this.Sql);
 		return invoke.toXML();
@@ -118,5 +136,10 @@ public class ExportTxt extends AbstractEntry {
 			column_index[i - 1] = resultSetMetaData.getColumnName(i);
 		}
 		return column_index;
+	}
+	private void alertMessage(PrintWriter writer,String message){
+		writer.println( "<script language='javascript'>");
+		writer.println("alert('"+message+"');");
+		writer.println("</script>");
 	}
 }
