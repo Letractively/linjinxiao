@@ -80,10 +80,11 @@ public class SendPhoneMsg implements Job {
 		String query_line_sql = " select l.phone_number from HLS_PRJ_MESSAGE_SENDER l where l.message_id=?";
 		Statement statement = conn.createStatement();
 		ResultSet header_rs = statement.executeQuery(query_header_sql);
-		String mobile = "";
+		String mobile;
 		int messageId = -1;
 		try {
 			while (header_rs.next()){
+				mobile = "";
 				messageId = header_rs.getInt(1);
 				PreparedStatement ps = conn.prepareStatement(query_line_sql);
 				ps.setInt(1, messageId);
@@ -97,7 +98,7 @@ public class SendPhoneMsg implements Job {
 				if(stime == null)
 					stime = "";
 				String content = header_rs.getString(3);
-//				logger.log("sendMessage "+"messageId:"+messageId+" mobile："+mobile+" content:"+content+" stime:"+stime);
+//				logger.log(Level.CONFIG,"sendMessage "+"messageId:"+messageId+" mobile："+mobile+" content:"+content+" stime:"+stime);
 				sendMessage(messageId,mobile,content,"",stime,"");
 			}
 		} catch (SQLException e) {

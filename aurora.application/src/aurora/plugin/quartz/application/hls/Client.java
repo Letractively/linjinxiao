@@ -295,13 +295,16 @@ public class Client {
 		xml += "</soap:Envelope>";
 
 		URL url;
+		ByteArrayOutputStream bout = null;
+		BufferedReader in = null;
 		try {
 			url = new URL(serviceURL);
 
 			URLConnection connection = url.openConnection();
 			HttpURLConnection httpconn = (HttpURLConnection) connection;
-			ByteArrayOutputStream bout = new ByteArrayOutputStream();
+			bout = new ByteArrayOutputStream();
 			bout.write(xml.getBytes());
+			bout.close();
 			byte[] b = bout.toByteArray();
 			httpconn.setRequestProperty("Content-Length", String.valueOf(b.length));
 			httpconn.setRequestProperty("Content-Type", "text/xml; charset=gb2312");
@@ -309,13 +312,13 @@ public class Client {
 			httpconn.setRequestMethod("POST");
 			httpconn.setDoInput(true);
 			httpconn.setDoOutput(true);
-
+			
 			OutputStream out = httpconn.getOutputStream();
 			out.write(b);
 			out.close();
 
 			InputStreamReader isr = new InputStreamReader(httpconn.getInputStream());
-			BufferedReader in = new BufferedReader(isr);
+			in = new BufferedReader(isr);
 			String inputLine;
 			while (null != (inputLine = in.readLine())) {
 				Pattern pattern = Pattern.compile("<mtResult>(.*)</mtResult>");
@@ -327,6 +330,22 @@ public class Client {
 			return result;
 		} catch (Throwable e) {
 			throw new ApplicationException(e);
+		}
+		finally{
+			if(bout != null){
+				try {
+					bout.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(in != null){
+				try {
+					in.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
