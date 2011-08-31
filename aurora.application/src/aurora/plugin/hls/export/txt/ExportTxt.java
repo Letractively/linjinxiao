@@ -90,6 +90,12 @@ public class ExportTxt extends AbstractEntry {
 				response.setContentType("txt");
 				response.setHeader("Content-Disposition", "attachment; filename=\"" + file_name + "." + FileExtension+ "\"");
 			}
+			runner.stop();
+			ProcedureRunner preRunner=runner;
+			while(preRunner.getCaller()!=null){
+				preRunner=preRunner.getCaller();
+				preRunner.stop();
+			}
 		} finally {
 			if (rs != null)
 				rs.close();
@@ -99,7 +105,12 @@ public class ExportTxt extends AbstractEntry {
 				ssc.freeConnection();
 			if (pw != null)
 				pw.close();
-
+//			runner.stop();
+//			ProcedureRunner preRunner=runner;
+//			while(preRunner.getCaller()!=null){
+//				preRunner=preRunner.getCaller();
+//				preRunner.stop();
+//			}
 		}
 		mLogger.log(Level.INFO, "done");
 	}
