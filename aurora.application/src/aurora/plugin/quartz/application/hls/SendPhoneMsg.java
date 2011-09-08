@@ -124,7 +124,7 @@ public class SendPhoneMsg implements Job {
 			}
 			if (statement != null) {
 				try {
-					statement.close();;
+					statement.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
