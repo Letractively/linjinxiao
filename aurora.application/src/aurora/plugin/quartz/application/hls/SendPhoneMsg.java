@@ -34,7 +34,7 @@ public class SendPhoneMsg implements Job {
 	private ILogger logger;
 	private Client client;
 	public void execute(JobExecutionContext context) throws JobExecutionException {
-		synchronized (running) {
+		synchronized (SERVICE_URL) {
 			if (running.intValue() == 1) {
 				// System.out.println("prev job still running");
 				return;
@@ -80,6 +80,8 @@ public class SendPhoneMsg implements Job {
 				+ " from HLS_PRJ_MESSAGE h where h.status = 'NEW' order by h.message_id";
 		String query_line_sql = " select l.phone_number from HLS_PRJ_MESSAGE_SENDER l where l.message_id=?";
 		Statement statement = conn.createStatement();
+		if(statement == null)
+			throw new IllegalStateException("Can't get statement from Connection");
 		ResultSet header_rs = statement.executeQuery(query_header_sql);
 		String mobile;
 		int messageId = -1;
