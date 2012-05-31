@@ -16,7 +16,7 @@ public class MyFileFilter extends FileFilter
 	{
 		if (file.isDirectory())return true;
 		String fileName = file.getName();
-		fileName.toLowerCase();
+		fileName = fileName.toLowerCase();
 		if(fileName!=null&&(fileName.endsWith(".fmt")))
 		{
 			return true;
