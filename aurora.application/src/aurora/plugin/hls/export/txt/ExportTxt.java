@@ -7,17 +7,22 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.logging.Level;
 
 import javax.servlet.http.HttpServletResponse;
 
 import uncertain.composite.CompositeMap;
 import uncertain.composite.TextParser;
+import uncertain.exception.BuiltinExceptionFactory;
 import uncertain.logging.ILogger;
 import uncertain.logging.LoggingContext;
 import uncertain.ocm.IObjectRegistry;
 import uncertain.proc.AbstractEntry;
 import uncertain.proc.ProcedureRunner;
+import aurora.bm.Field;
+import aurora.database.FetchDescriptor;
+import aurora.database.service.BusinessModelService;
 import aurora.database.service.DatabaseServiceFactory;
 import aurora.database.service.SqlServiceContext;
 import aurora.service.ServiceInstance;
@@ -31,10 +36,13 @@ public class ExportTxt extends AbstractEntry {
 	public String FileExtension = "txt";
 	public String Separator = ",";
 	public String Sql;
+	public String Bm;
 	private DatabaseServiceFactory databasefactory;
+
 	public ExportTxt(IObjectRegistry registry) {
 		databasefactory = (DatabaseServiceFactory) registry.getInstanceOfType(DatabaseServiceFactory.class);
 	}
+
 	@Override
 	public void run(ProcedureRunner runner) throws Exception {
 		CompositeMap context = runner.getContext();
@@ -46,33 +54,57 @@ public class ExportTxt extends AbstractEntry {
 		mLogger.log(Level.CONFIG, toString());
 
 		HttpServiceInstance serviceInstance = (HttpServiceInstance) ServiceInstance.getInstance(context);
-		// SqlServiceContext sqlServiceContext =
-		// SqlServiceContext.createSqlServiceContext(context);
-		mLogger.log(Level.INFO, "get Connection");
+
+		PrintWriter pw = null;
+		mLogger.log(Level.CONFIG, "get HttpServletResponse");
+		HttpServletResponse response = serviceInstance.getResponse();
+		response.setCharacterEncoding(KEY_CHARSET);
+		String file_name = FileName;
+		try {
+			file_name = new String(FileName.getBytes(), "ISO-8859-1");
+		} catch (UnsupportedEncodingException e) {
+			mLogger.log(Level.WARNING, "", e);
+		}
+		try {
+			int count = 0;
+			pw = response.getWriter();
+			if (Sql != null) {
+				count = executeSql(pw);
+			} else {
+				count = queryBM(pw,Bm,context);
+			}
+			if (count == 0) {
+				mLogger.log(Level.INFO, "no data found.");
+				alertMessage(pw, "没有数据");
+			} else {
+				response.setContentType("txt");
+				response.setHeader("Content-Disposition", "attachment; filename=\"" + file_name + "." + FileExtension + "\"");
+			}
+		} finally{
+			if (pw != null)
+				pw.close();
+		}
+		runner.stop();
+		ProcedureRunner preRunner = runner;
+		while (preRunner.getCaller() != null) {
+			preRunner = preRunner.getCaller();
+			preRunner.stop();
+		}
+		mLogger.log(Level.INFO, "done");
+	}
+
+	private int executeSql(PrintWriter pw) throws SQLException {
 		SqlServiceContext ssc = null;
 		Statement statment = null;
 		ResultSet rs = null;
-		PrintWriter pw = null;
+		int count = 0;
 		try {
 			ssc = databasefactory.createContextWithConnection();
 			Connection conn = ssc.getConnection();
-			mLogger.log(Level.INFO, "get HttpServletResponse");
-			HttpServletResponse response = serviceInstance.getResponse();
-			// pw = new PrintWriter(new BufferedWriter(new
-			// OutputStreamWriter(response.getOutputStream(), KEY_CHARSET)));
-			response.setCharacterEncoding(KEY_CHARSET);
-			String file_name = FileName;
-			try {
-				file_name = new String(FileName.getBytes(), "ISO-8859-1");
-			} catch (UnsupportedEncodingException e) {
-				mLogger.log(Level.INFO, "", e);
-			}
-			pw = response.getWriter();
 			statment = conn.createStatement();
 			mLogger.log(Level.INFO, "executeQuery sql" + Sql);
 			rs = statment.executeQuery(Sql);
 			String[] columns = createColumnProperties(rs);
-			int count = 0;
 			while (rs.next()) {
 				count++;
 				for (int i = 0; i < columns.length; i++) {
@@ -83,19 +115,6 @@ public class ExportTxt extends AbstractEntry {
 				}
 				pw.println();
 			}
-			if (count == 0) {
-				mLogger.log(Level.INFO, "no data found.");
-				alertMessage(pw,"没有数据");
-			}else{
-				response.setContentType("txt");
-				response.setHeader("Content-Disposition", "attachment; filename=\"" + file_name + "." + FileExtension+ "\"");
-			}
-			runner.stop();
-			ProcedureRunner preRunner=runner;
-			while(preRunner.getCaller()!=null){
-				preRunner=preRunner.getCaller();
-				preRunner.stop();
-			}
 		} finally {
 			if (rs != null)
 				rs.close();
@@ -103,20 +122,56 @@ public class ExportTxt extends AbstractEntry {
 				statment.close();
 			if (ssc != null)
 				ssc.freeConnection();
-			if (pw != null)
-				pw.close();
-//			runner.stop();
-//			ProcedureRunner preRunner=runner;
-//			while(preRunner.getCaller()!=null){
-//				preRunner=preRunner.getCaller();
-//				preRunner.stop();
-//			}
 		}
-		mLogger.log(Level.INFO, "done");
+		return count;
 	}
+
+	public int queryBM(PrintWriter pw, String bm_name, CompositeMap context) throws Exception {
+		int count = 0;
+		SqlServiceContext sqlContext = databasefactory.createContextWithConnection();
+		try {
+			if (context == null)
+				context = new CompositeMap();
+			BusinessModelService service = databasefactory.getModelService(bm_name, context);
+			CompositeMap resultMap = service.queryAsMap(context, FetchDescriptor.fetchAll());
+			if (resultMap == null || resultMap.getChilds() == null || resultMap.getChilds().size() == 0)
+				return 0;
+			mLogger.log(Level.CONFIG, "resultMap:" + resultMap.toXML());
+			String[] columns = createColumnProperties(service.getBusinessModel().getFields());
+			@SuppressWarnings("unchecked")
+			List<CompositeMap> childs = resultMap.getChilds();
+			for (CompositeMap child : childs) {
+				count++;
+				for (int i = 0; i < columns.length; i++) {
+					String value = child.getString(columns[i]);
+					if (value == null)
+						value = "";
+					pw.append(value).append(Separator);
+				}
+				pw.println();
+			}
+		} finally {
+			if (sqlContext != null)
+				sqlContext.freeConnection();
+		}
+		return count;
+	}
+
+	private String[] createColumnProperties(Field[] fields) throws SQLException {
+		if(fields == null)
+			throw new RuntimeException(" Must define fields in business Model!");
+		String[] column_index = null;
+		column_index = new String[fields.length];
+		for (int i = 0; i < fields.length; i++) {
+			column_index[i] = fields[i].getName();
+		}
+		return column_index;
+	}
+
 	void validatePara(CompositeMap context) {
-		if (Sql == null && "".equals(Sql))
-			throw new IllegalArgumentException("Sql is undefined");
+		if (Sql == null && Bm == null)
+			throw BuiltinExceptionFactory.createOneAttributeMissing(this, "Sql,Bm");
+		Bm = TextParser.parse(Bm, context);
 		Sql = TextParser.parse(Sql, context);
 		if (FileName == null && "".equals(FileName))
 			throw new IllegalArgumentException("file is undefined");
@@ -126,6 +181,7 @@ public class ExportTxt extends AbstractEntry {
 		Separator = TextParser.parse(Separator, context);
 		FileExtension = TextParser.parse(FileExtension, context);
 	}
+
 	public String toString() {
 		CompositeMap invoke = new CompositeMap("txt", "aurora.plugin.export.txt", "export-txt");
 		invoke.put("FileName", this.FileName);
@@ -134,10 +190,12 @@ public class ExportTxt extends AbstractEntry {
 		invoke.put("Sql", this.Sql);
 		return invoke.toXML();
 	}
+
 	public void initLogger(CompositeMap context) {
 		CompositeMap m = context.getRoot();
 		this.mLogger = LoggingContext.getLogger(m, LOGGING_TOPIC);
 	}
+
 	private String[] createColumnProperties(ResultSet resultSet) throws SQLException {
 		ResultSetMetaData resultSetMetaData;
 		String[] column_index = null;
@@ -148,9 +206,10 @@ public class ExportTxt extends AbstractEntry {
 		}
 		return column_index;
 	}
-	private void alertMessage(PrintWriter writer,String message){
-		writer.println( "<script language='javascript'>");
-		writer.println("alert('"+message+"');");
+
+	private void alertMessage(PrintWriter writer, String message) {
+		writer.println("<script language='javascript'>");
+		writer.println("alert('" + message + "');");
 		writer.println("</script>");
 	}
 }
