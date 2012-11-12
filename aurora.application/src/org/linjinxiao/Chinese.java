@@ -51,7 +51,7 @@ public class Chinese {
 			}
 
 		}
-		String abc= Chinese.getInstance().UTF82Chinese("UTF82Chinese:"+originalString);
+		String abc= Chinese.UTF82Chinese("UTF82Chinese:"+originalString);
 		System.out.println(abc);
     }
 
@@ -81,8 +81,8 @@ public class Chinese {
 	}
 
 	public static void main(String[] args) {
-		String string = "\\u62A5\u8868\u6A21\u677F";// ����ģ��
-		System.out.println(Chinese.getInstance().UTF82Chinese(string));
+		String string = "\\u62A5\u8868\u6A21\u677F";//
+		System.out.println(Chinese.UTF82Chinese(string));
 		String originalString= "/QgnOcW4h5KZ7HLQ+O78rBemdt4cFKJpRY2pytZ79b1sG15jQEiBUdyp0O7Jmn34GhrH361vEigV +tM7M/FXeYso9HHb/LGjiU8DGwbYEQ8rIaTjXBhuHcMyCPxzVtboDxphZ7ddg4Fukic1FbbwIzGU rZ7JQnJ2us01Ujr+VqcthkZGWoBWhTeNvZu0WQXdOsyANaTMqQu5TSaRwitqKfUu+Vhg6QhxZ6uF mbEr40sPyLIBZ0UW5KYyYg9+NVh1";
 		Chinese.justTest(originalString);
 
