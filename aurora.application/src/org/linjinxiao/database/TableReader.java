@@ -36,11 +36,11 @@ public class TableReader{
 	}
 	private void readData(ResultSet resultSet) throws Exception{
 		while(resultSet.next()) {
-			String[] gdb_batch_jobs_temp_row = new String[2];
+			String[] data_row = new String[2];
 			int row_num = resultSet.getInt(1);
-			gdb_batch_jobs_temp_row[0] = resultSet.getString(2);
-			gdb_batch_jobs_temp_row[1] = resultSet.getString(3);
-			System.out.println("rownum "+row_num+" : "+gdb_batch_jobs_temp_row[0]+" : "+gdb_batch_jobs_temp_row[1]);
+			data_row[0] = resultSet.getString(2);
+			data_row[1] = resultSet.getString(3);
+			System.out.println("rownum "+row_num+" : "+data_row[0]+" : "+data_row[1]);
 			
 		}
 	}
