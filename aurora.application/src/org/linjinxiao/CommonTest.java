@@ -6,6 +6,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import uncertain.composite.CompositeLoader;
+import uncertain.composite.CompositeMap;
+import uncertain.composite.XMLOutputter;
+
 
 
 public class CommonTest {
@@ -40,9 +44,13 @@ public class CommonTest {
 	}
 
 	public static void main(String[] args) throws Exception {
+		String longMessage = "09939测试abc?1111111111111111111111111111111111111111111111111111111111111111111111";
+		String shortMessage = "您在test申请了兑换积分券。将获得1张test电子券。请回复您的姓名以确认此号码有效。本短信免费,回复短信不收另外费1111";
+		System.out.println(longMessage.length()+",shortMessage:"+shortMessage.length());
 		CommonTest cast = new CommonTest();
 		cast.run();
-//		cast.excepToStr();
+
+		//		cast.excepToStr();
 	}
 	public void excepToStr(){
 		try{

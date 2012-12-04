@@ -13,5 +13,6 @@
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/geronimo-jms_1.1_spec-1.1.1.jar"/>
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/activemq-core-5.4.2.jar"/>
 	<classpathentry kind="lib" path="E:/workspace/eclipse/workspace/aurora-application/lib/jsoup-1.6.2.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Axis 1.6.1"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
