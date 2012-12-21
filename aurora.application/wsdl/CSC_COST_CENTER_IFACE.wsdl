@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://ws.apache.org/axis2" xmlns:ns1="http://org.apache.axis2/xsd" xmlns:ns="http://ws.apache.org/axis2" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:ax21="http://model.webservice.mas.com/xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/">
+<wsdl:documentation>CSC_COST_CENTER_IFACE</wsdl:documentation>
+  <wsdl:types>
+    <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://model.webservice.mas.com/xsd">
+<xs:complexType name="CostCenterIFace">
+<xs:sequence>
+<xs:element minOccurs="0" name="BUKRS" nillable="true" type="xs:string"/>
+<xs:element minOccurs="0" name="DATAB" nillable="true" type="xs:date"/>
+<xs:element minOccurs="0" name="DATBI" nillable="true" type="xs:date"/>
+<xs:element minOccurs="0" name="KOKRS" nillable="true" type="xs:string"/>
+<xs:element minOccurs="0" name="KOSTL" nillable="true" type="xs:string"/>
+<xs:element minOccurs="0" name="MANDT" nillable="true" type="xs:string"/>
+<xs:element minOccurs="0" name="NAME1" nillable="true" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+</xs:schema>
+    <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://ws.apache.org/axis2" xmlns:ax22="http://model.webservice.mas.com/xsd">
+<xs:import namespace="http://model.webservice.mas.com/xsd"/>
+<xs:element name="setInterFace">
+<xs:complexType>		
+				<xs:sequence>
+					<xs:element name="items">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element maxOccurs="unbounded" name="item">
+									<xs:complexType>
+										<xs:sequence>
+										<xs:element minOccurs="0" name="BUKRS" nillable="true" type="xs:string"/>
+										<xs:element minOccurs="0" name="DATAB" nillable="true" type="xs:date"/>
+										<xs:element minOccurs="0" name="DATBI" nillable="true" type="xs:date"/>
+										<xs:element minOccurs="0" name="KOKRS" nillable="true" type="xs:string"/>
+										<xs:element minOccurs="0" name="KOSTL" nillable="true" type="xs:string"/>
+										<xs:element minOccurs="0" name="MANDT" nillable="true" type="xs:string"/>
+										<xs:element minOccurs="0" name="NAME1" nillable="true" type="xs:string"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="result">
+<xs:complexType>
+<xs:sequence>
+				<xs:element minOccurs="1" name="status" nillable="false" type="xs:string"/>
+				<xs:element minOccurs="0" name="message" nillable="true" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="setInterFaceRequest">
+    <wsdl:part name="parameters" element="ns:setInterFace">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="setInterFaceResponse">
+    <wsdl:part name="parameters" element="ns:result">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="CSC_COST_CENTER_IFACEPortType">
+    <wsdl:operation name="setInterFace">
+      <wsdl:input message="ns:setInterFaceRequest" wsaw:Action="urn:setInterFace">
+    </wsdl:input>
+      <wsdl:output message="ns:setInterFaceResponse" wsaw:Action="urn:setInterFaceResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="CSC_COST_CENTER_IFACESoap11Binding" type="ns:CSC_COST_CENTER_IFACEPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="setInterFace">
+      <soap:operation soapAction="urn:setInterFace" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="CSC_COST_CENTER_IFACESoap12Binding" type="ns:CSC_COST_CENTER_IFACEPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="setInterFace">
+      <soap12:operation soapAction="urn:setInterFace" style="document"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="CSC_COST_CENTER_IFACEHttpBinding" type="ns:CSC_COST_CENTER_IFACEPortType">
+    <http:binding verb="POST"/>
+    <wsdl:operation name="setInterFace">
+      <http:operation location="setInterFace"/>
+      <wsdl:input>
+        <mime:content part="parameters" type="text/xml"/>
+      </wsdl:input>
+      <wsdl:output>
+        <mime:content part="parameters" type="text/xml"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="CSC_COST_CENTER_IFACE">
+    <wsdl:port name="CSC_COST_CENTER_IFACEHttpSoap11Endpoint" binding="ns:CSC_COST_CENTER_IFACESoap11Binding">
+      <soap:address location="http://172.32.231.211:8099/hec2dev/modules/service/sap/CSC_COST_CENTER_IFACE.svc"/>
+    </wsdl:port>
+    <wsdl:port name="CSC_COST_CENTER_IFACEHttpEndpoint" binding="ns:CSC_COST_CENTER_IFACEHttpBinding">
+      <http:address location="http://172.32.231.211:8099/hec2dev/modules/service/sap/CSC_COST_CENTER_IFACE.svc"/>
+    </wsdl:port>
+    <wsdl:port name="CSC_COST_CENTER_IFACEHttpSoap12Endpoint" binding="ns:CSC_COST_CENTER_IFACESoap12Binding">
+      <soap12:address location="http://172.32.231.211:8099/hec2dev/modules/service/sap/CSC_COST_CENTER_IFACE.svc"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

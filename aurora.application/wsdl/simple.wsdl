@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="simple" targetNamespace="http://www.aurora.org/simple/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://www.aurora.org/simple/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://www.aurora.org/simple/">
+      <xsd:element name="cancatRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+          	<xsd:element name="s1" type="xsd:string"/>
+          	<xsd:element name="s2" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="cancatResponse" type="xsd:string">
+
+      </xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="cancatRequest">
+    <wsdl:part name="parameters" element="tns:cancatRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="cancatResponse">
+    <wsdl:part name="parameters" element="tns:cancatResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="simple">
+    <wsdl:operation name="cancat">
+      <wsdl:input message="tns:cancatRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:cancatResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="simpleSOAP" type="tns:simple">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="cancat">
+      <soap:operation soapAction="http://www.aurora.org/simple/cancat"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="simple">
+    <wsdl:port name="simpleSOAP" binding="tns:simpleSOAP">
+      <soap:address location="http://localhost:808/axis2/services/simple"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
