@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="auroraCall" targetNamespace="http://www.aurora-framework.org/application" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://www.aurora-framework.org/application" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://www.aurora-framework.org/application">
+      <xsd:element name="soapRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+          	<xsd:element name="param1" type="xsd:string"/>
+          	<xsd:element name="param2" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="soapResponse">
+      	<xsd:complexType>
+      		<xsd:sequence>
+      			<xsd:element maxOccurs="1" minOccurs="1" name="records">
+      				<xsd:complexType>
+      					<xsd:sequence>
+      						<xsd:element maxOccurs="unbounded" minOccurs="1" name="record">
+      							<xsd:complexType>
+
+      								<xsd:sequence>
+      									<xsd:element name="record_id" type="xsd:string">
+      									</xsd:element>
+      									<xsd:element name="record_code" type="xsd:string">
+      									</xsd:element>
+      								</xsd:sequence>
+      							</xsd:complexType>
+      						</xsd:element>
+      					</xsd:sequence>
+      				</xsd:complexType>
+      			</xsd:element>
+      		</xsd:sequence>
+      	</xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="soapResponse">
+    <wsdl:part name="parameters" element="tns:soapResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="soapRequest">
+    <wsdl:part name="parameters" element="tns:soapRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="auroraCallportType">
+    <wsdl:operation name="auroraCall">
+      <wsdl:input message="tns:soapRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:soapResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="auroraCallbinding" type="tns:auroraCallportType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="auroraCall">
+      <soap:operation soapAction="http://www.aurora-framework.org/application/auroraCall"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="auroraCall">
+    <wsdl:port name="auroraCallSOAP" binding="tns:auroraCallbinding">
+      <soap:address location="http://localhost:8080/axis2/services/auroraCall"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

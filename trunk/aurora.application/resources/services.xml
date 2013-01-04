@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This file was auto-generated from WSDL -->
+<!-- by the Apache Axis2 version: 1.6.2  Built on : Apr 17, 2012 (05:33:49 IST) -->
+<serviceGroup>
+    <service name="auroraCall">
+        <messageReceivers>
+            <messageReceiver mep="http://www.w3.org/ns/wsdl/in-out" class="org.linjinxiao.ws.server.auroracall.AuroraCallMessageReceiverInOut"/>
+        </messageReceivers>
+        <parameter name="ServiceClass">org.linjinxiao.ws.server.auroracall.AuroraCallSkeleton</parameter>
+        <parameter name="useOriginalwsdl">true</parameter>
+        <parameter name="modifyUserWSDLPortAddress">true</parameter>
+        <operation name="auroraCall" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://www.aurora-framework.org/application">
+            <actionMapping>http://www.aurora-framework.org/application/auroraCall</actionMapping>
+            <outputActionMapping>http://www.aurora-framework.org/application/auroraCallportType/auroraCallResponse</outputActionMapping>
+        </operation>
+    </service>
+</serviceGroup>
