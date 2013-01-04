@@ -1,4 +1,4 @@
-package org.linjinxiao.webservice;
+package org.linjinxiao.ws.client;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
