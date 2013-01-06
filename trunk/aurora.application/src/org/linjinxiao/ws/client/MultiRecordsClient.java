@@ -39,7 +39,7 @@ public class MultiRecordsClient {
 
 	private static OMElement makeRequest() {
 		OMFactory factory = OMAbstractFactory.getOMFactory();
-		OMElement parameter = factory.createOMElement(new QName("http://www.aurora-framework.org/application", "parameter"));
+		OMElement parameter = factory.createOMElement(new QName("http://www.aurora-framework.org/schema", "parameter"));
 		OMElement requestHead = factory.createOMElement(new QName("requestHead"));
 		OMElement requestBody = factory.createOMElement(new QName("requestBody"));
 		OMElement records = factory.createOMElement(new QName("records"));
