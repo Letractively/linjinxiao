@@ -52,7 +52,7 @@
                                                          skel.auroraCall(wrappedParam)
                                                     ;
                                             
-                                        envelope = toEnvelope(getSOAPFactory(msgContext), soapResponse1, false, new javax.xml.namespace.QName("http://www.aurora-framework.org/application",
+                                        envelope = toEnvelope(getSOAPFactory(msgContext), soapResponse1, false, new javax.xml.namespace.QName("http://www.aurora-framework.org/schema",
                                                     "auroraCall"));
                                     
             } else {

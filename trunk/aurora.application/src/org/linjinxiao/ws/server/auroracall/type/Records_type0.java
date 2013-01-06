@@ -19,7 +19,7 @@
         implements org.apache.axis2.databinding.ADBBean{
         /* This type was generated from the piece of schema that had
                 name = records_type0
-                Namespace URI = http://www.aurora-framework.org/application
+                Namespace URI = http://www.aurora-framework.org/schema
                 Namespace Prefix = ns1
                 */
             
@@ -138,7 +138,7 @@
                   if (serializeType){
                
 
-                   java.lang.String namespacePrefix = registerPrefix(xmlWriter,"http://www.aurora-framework.org/application");
+                   java.lang.String namespacePrefix = registerPrefix(xmlWriter,"http://www.aurora-framework.org/schema");
                    if ((namespacePrefix != null) && (namespacePrefix.trim().length() > 0)){
                        writeAttribute("xsi","http://www.w3.org/2001/XMLSchema-instance","type",
                            namespacePrefix+":records_type0",
@@ -176,7 +176,7 @@
         }
 
         private static java.lang.String generatePrefix(java.lang.String namespace) {
-            if(namespace.equals("http://www.aurora-framework.org/application")){
+            if(namespace.equals("http://www.aurora-framework.org/schema")){
                 return "ns1";
             }
             return org.apache.axis2.databinding.utils.BeanUtil.getUniquePrefix();

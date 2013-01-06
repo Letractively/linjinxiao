@@ -22,7 +22,7 @@
 
               
                   if (
-                  "http://www.aurora-framework.org/application".equals(namespaceURI) &&
+                  "http://www.aurora-framework.org/schema".equals(namespaceURI) &&
                   "record_type0".equals(typeName)){
                    
                             return  org.linjinxiao.ws.server.auroracall.type.Record_type0.Factory.parse(reader);
@@ -32,7 +32,7 @@
 
               
                   if (
-                  "http://www.aurora-framework.org/application".equals(namespaceURI) &&
+                  "http://www.aurora-framework.org/schema".equals(namespaceURI) &&
                   "records_type0".equals(typeName)){
                    
                             return  org.linjinxiao.ws.server.auroracall.type.Records_type0.Factory.parse(reader);
