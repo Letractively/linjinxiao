@@ -7,6 +7,7 @@ import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.OMFactory;
 import org.apache.axis2.AxisFault;
+import org.apache.axis2.Constants.Configuration;
 import org.apache.axis2.addressing.EndpointReference;
 import org.apache.axis2.client.Options;
 import org.apache.axis2.client.ServiceClient;
@@ -19,6 +20,7 @@ public class OneRecordClient {
 	public static void main(String[] args) throws AxisFault {
 		ServiceClient client = new ServiceClient();
 		Options options = new Options();
+//		options.setProperty(Configuration.CHARACTER_SET_ENCODING, "GBK");
 		options.setTo(new EndpointReference("http://127.0.0.1:8081/hec2dev/modules/sys/test/sys_web_service_one_record_test.svc"));// 修正为实际工程的URL
 		addAuthorization("linjinxiao", "ok", options);
 		client.setOptions(options);
