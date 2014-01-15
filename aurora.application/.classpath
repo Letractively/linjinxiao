@@ -16,5 +16,9 @@
 	<classpathentry kind="lib" path="lib/jsoup-1.6.2.jar"/>
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapjco3.jar"/>
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapidoc3.jar"/>
+	<classpathentry kind="lib" path="lib/ant.jar"/>
+	<classpathentry kind="lib" path="lib/mybatis-3.2.3.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Coupon"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Oracle AQ"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

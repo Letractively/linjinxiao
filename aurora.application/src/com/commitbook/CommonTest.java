@@ -1,17 +1,26 @@
 package com.commitbook;
 
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import uncertain.composite.CompositeLoader;
-import uncertain.composite.CompositeMap;
-import uncertain.composite.XMLOutputter;
-import uncertain.datatype.ConvertionException;
-import uncertain.datatype.DataType;
-
+import javax.mail.Address;
+import javax.mail.Authenticator;
+import javax.mail.Message;
+import javax.mail.Multipart;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 
 
 public class CommonTest {
@@ -46,31 +55,64 @@ public class CommonTest {
 	}
 
 	public static void main(String[] args) throws Exception {
+		CommonTest test = new CommonTest();
+		test.regex();
+//		test.removeCDATA("<test><![CDATA[ok]]></test>");
+//		double a=10080692.2;
+//		System.out.println(a);
+//		BigDecimal b= new BigDecimal(a);
+//		System.out.println(b);
 		
-		String a = "12260::46010000:2013:2013-04:46010000:DE02:AC01102001E::0:0::PR03:PRO02:CH02:::::::::";
-		 
-		a = a.replaceAll(":", ": ");
-		String[] b = a.split(":");
-		System.out.println(b.length);
-		for(int i=0;i<b.length;i++){
-			System.out.println(b[i].trim());
-		}
-		
-//		System.out.println(Class.forName("java.util.Date").getName());
-		
-//		String longMessage = "09939测试abc?1111111111111111111111111111111111111111111111111111111111111111111111";
-//		String shortMessage = "您在test申请了兑换积分券。将获得1张test电子券。请回复您的姓名以确认此号码有效。本短信免费,回复短信不收另外费1111";
-//		System.out.println(longMessage.length()+",shortMessage:"+shortMessage.length());
-//		CommonTest cast = new CommonTest();
-//		cast.run();
+//		double a=10080692.02;
+//		System.out.println(a);
+//		String b= BigDecimal.valueOf(a).toString();
+//		System.out.println(b);
 
-		//		cast.excepToStr();
 	}
-//	public Object convert( Object value, Class prefered_class) throws ConvertionException{
-//		DataType dt = getDataType(prefered_class);
-//		if( dt == null) return null;
-//		else return dt.convert(value);
-//	}
+	
+	private void regex(){
+		Pattern pattern = Pattern.compile("([\\w]*)(.*)");  
+		  
+		Matcher matcher = pattern.matcher("bgt_budget_reserves（不超预算）.sql");  
+		
+//		 String str = "abc<";  
+//		 
+//		pattern = Pattern.compile("([//w]+)<");  
+//		
+//		matcher = pattern.matcher(str);  
+  
+        while (matcher.find()) {  
+  
+            System.out.println(matcher.group(1));  
+            System.out.println(matcher.group(2));
+  
+        }  
+//		String str = "ceponline@yahoo.com.cn";
+//		Pattern pattern = Pattern.compile("[//w//.//-]+@([//w//-]+//.)+[//w//-]+", Pattern.CASE_INSENSITIVE);
+//		Matcher matcher = pattern.matcher(str);
+//		System.out.println(matcher.matches());
+	}
+
+
+	class SmtpAuth extends Authenticator {
+		private String username, password;
+	
+		public SmtpAuth(String username, String password) {
+			this.username = username;
+			this.password = password;
+		}
+	
+		protected javax.mail.PasswordAuthentication getPasswordAuthentication() {
+			return new javax.mail.PasswordAuthentication(username, password);
+		}
+	}
+	private String removeCDATA(String source){
+		source = source.replaceAll("<!\\[CDATA\\[","");  
+		source =  source.replaceAll("]]>","");  
+		System.out.println(source);
+		return source;
+				
+	}
 	public void excepToStr(){
 		try{
 			throw new IllegalArgumentException("test");
