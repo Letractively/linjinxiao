@@ -1,0 +1,203 @@
+1.
+Stream A
+
+create tablespace tbs_stream datafile '/u01/oracle/oradata/massta/tbs_stream01.dbf' size 100m autoextend on maxsize unlimited segment space management auto;
+
+execute dbms_logmnr_d.set_tablespace('tbs_stream');
+
+create user strmadmin identified by strmadmin default tablespace tbs_stream temporary tablespace temp;
+
+grant connect,resource,dba,aq_administrator_role to strmadmin;
+begin
+  dbms_streams_auth.grant_admin_privilege(grantee          => 'strmadmin',
+                                          grant_privileges => true);
+end;
+/
+
+alter database add supplemental log data;
+
+connect strmadmin/strmadmin
+
+create database link masstb connect to strmadmin identified by strmadmin using 'masstb';
+
+#创建流队列
+begin
+  dbms_streams_adm.set_up_queue(queue_table => 'strmadmin.massta_queue_table',
+                                queue_name  => 'strmadmin.massta_queue');
+end;
+/
+
+#创建捕获进程
+begin
+  dbms_streams_adm.add_schema_rules(schema_name        => 'scott',
+                                    streams_type       => 'capture',
+                                    streams_name       => 'capture_massta',
+                                    queue_name         => 'strmadmin.massta_queue',
+                                    include_dml        => true,
+                                    include_ddl        => true,
+                                    include_tagged_lcr => false,
+                                    source_database    => null,
+                                    inclusion_rule     => true);
+end;
+/
+
+#创建传播进程
+begin
+  dbms_streams_adm.add_schema_propagation_rules(schema_name            => 'scott',
+                                                streams_name           => 'massta_to_masstb',
+                                                source_queue_name      => 'strmadmin.massta_queue',
+                                                destination_queue_name => 'strmadmin.masstb_queue@masstb',
+                                                include_dml            => true,
+                                                include_ddl            => true,
+                                                include_tagged_lcr     => false,
+                                                source_database        => 'massta',
+                                                inclusion_rule         => true);
+end;
+/
+
+
+#修改propagation休眠时间为0，表示实时传播LCR。
+/*
+begin
+  dbms_aqadm.alter_propagation_schedule(queue_name  => 'massta_queue',
+                                        destination => 'masstb',
+                                        latency     => 0);
+end;
+*/
+ORA-24042: 不存在 QUEUE MASSTA_QUEUE 及 DESTINATION MASSTB 的传播调度
+ORA-06512: 在 "SYS.DBMS_PRVTAQIP", line 1397
+ORA-06512: 在 "SYS.DBMS_AQADM", line 963
+ORA-06512: 在 line 3
+#以上为旧版本
+
+#现在为以下脚本
+begin
+  dbms_aqadm.schedule_propagation(queue_name  => 'massta_queue',
+                                    destination => 'masstb',
+                                        latency     => 0);
+end;
+
+#启动Capture进程
+begin
+  dbms_capture_adm.start_capture(capture_name => 'capture_massta');
+end;
+
+
+2.Stream B
+
+
+create tablespace tbs_stream datafile '/u01/oracle/oradata/masstb/tbs_stream01.dbf' size 100m autoextend on maxsize unlimited segment space management auto;
+
+execute dbms_logmnr_d.set_tablespace('tbs_stream');
+
+create user strmadmin identified by strmadmin default tablespace tbs_stream temporary tablespace temp;
+
+
+grant connect,resource,dba,aq_administrator_role to strmadmin;
+
+begin
+  dbms_streams_auth.grant_admin_privilege(grantee          => 'strmadmin',
+                                          grant_privileges => true);
+end;
+
+
+connect strmadmin/strmadmin
+
+create database link massta connect to strmadmin identified by strmadmin using 'massta';
+
+#创建流队列
+begin
+  dbms_streams_adm.set_up_queue(queue_table => 'masstb_queue_table',
+                                queue_name  => 'masstb_queue');
+end;
+/
+
+#创建应用进程
+begin
+  dbms_streams_adm.add_schema_rules(schema_name        => 'scott',
+                                    streams_type       => 'apply',
+                                    streams_name       => 'apply_masstb',
+                                    queue_name         => 'strmadmin.masstb_queue',
+                                    include_dml        => true,
+                                    include_ddl        => true,
+                                    include_tagged_lcr => false,
+                                    source_database    => 'massta',
+                                    inclusion_rule     => true);
+end;
+/
+
+#启动STREAM
+
+#启动Apply进程
+begin
+  dbms_apply_adm.start_apply(apply_name => 'apply_masstb');
+end;
+/
+
+#停止Apply进程
+begin
+  dbms_apply_adm.stop_apply(apply_name => 'apply_masstb');
+end;
+/
+
+SELECT * FROM ALL_CAPTURE;
+SELECT * FROM ALL_PROPAGATION;
+SELECT * FROM ALL_APPLY;
+
+
+
+2.给目标数据库设置instantiation scn.
+#in source database
+select dbms_flashback.get_system_change_number() from dual;
+
+#in destination database
+begin
+  dbms_apply_adm.set_schema_instantiation_scn(source_schema_name   => 'scott',
+                                              source_database_name => 'massta',
+                                              instantiation_scn    => 1209147);
+end;
+/
+
+
+6.给destination database设置一些参数，使得apply process不会因为出现错误而终止运行
+
+begin
+  dbms_apply_adm.set_parameter(apply_name => 'apply_masstb',
+                               parameter  => 'disable_on_error',
+                               value      => 'n');
+end;
+
+   
+   
+    /PL/SQL procedure successfully completed.SQL> begin  2    dbms_apply_adm.start_apply  3    (apply_name => 'apply_stream');  4  end;  5  /PL/SQL procedure successfully completed.SQL>
+
+===============================================================
+资料列表
+
+http://blog.csdn.net/hyee/article/details/6278797
+http://gaoshan.blog.51cto.com/742525/406547
+http://space.itpub.net/9375/viewspace-498019
+http://docs.oracle.com/cd/B14099_19/integrate.1012/b19370/enq_deq.htm#BGEBGJAG
+http://docs.oracle.com/cd/B10501_01/appdev.920/a96587/apexampl.htm#60515
+http://wenku.baidu.com/view/14afbac04028915f804dc29d.html
+
+http://cs.felk.cvut.cz/10gr2/server.102/b14257/aq_demo.htm#i1005664
+http://docs.oracle.com/cd/B28359_01/server.111/b28420/aq_stage.htm
+http://docs.oracle.com/cd/B28359_01/server.111/b28420/aq_demo.htm#i1006898
+http://space.itpub.net/?uid-7607759-action-viewspace-itemid-550355
+
+http://docs.oracle.com/cd/B12037_01/server.101/b10727/strmover.htm
+http://docs.oracle.com/cd/B28359_01/server.111/b28322/man_gen_rep.htm#i1011680
+http://docs.oracle.com/cd/B19306_01/server.102/b14229/strms_apply.htm
+http://docs.oracle.com/cd/B10501_01/server.920/a96571/prop.htm#45957
+http://docs.oracle.com/cd/B12037_01/server.101/b10785/jm_exmpl.htm#g1013271
+http://docs.oracle.com/cd/B13789_01/server.101/b10785/aq_admin.htm#i1008642
+http://docs.oracle.com/cd/B13789_01/server.101/b10785/jm_create.htm
+http://docs.oracle.com/cd/B10500_01/appdev.920/a96587/adq_bgph.htm
+http://www.stanford.edu/dept/itss/docs/oracle/10g/server.101/b10727/capture.htm#1006155
+http://it.toolbox.com/blogs/oracle-guide/manually-creating-a-logical-change-record-lcr-13838
+
+
+/newhec/modules/fnd/pur_system_venders.screen:6
+/newhec/modules/bgt/bgt_budget_item_types.screen:4
+/newhec/modules/expm/exp_policy_place_type.screen:3

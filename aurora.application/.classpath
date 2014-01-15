@@ -4,21 +4,25 @@
 	<classpathentry kind="lib" path="lib/quartz.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/aurora"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/uncertain"/>
-	<classpathentry kind="lib" path="lib/servlet-api.jar"/>
 	<classpathentry kind="lib" path="lib/classes12.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-1.2.15.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/aurora-plugin"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="/aurora-plugin/dependency/mail.jar"/>
-	<classpathentry kind="lib" path="/aurora-plugin/dependency/geronimo-jms_1.1_spec-1.1.1.jar"/>
-	<classpathentry kind="lib" path="/aurora-plugin/dependency/activemq-core-5.4.2.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Axis 1.6.1"/>
 	<classpathentry kind="lib" path="lib/jsoup-1.6.2.jar"/>
-	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapjco3.jar"/>
-	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapidoc3.jar"/>
 	<classpathentry kind="lib" path="lib/ant.jar"/>
 	<classpathentry kind="lib" path="lib/mybatis-3.2.3.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Coupon"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Oracle AQ"/>
+	<classpathentry kind="lib" path="/aurora-plugin/dependency/activemq-core-5.4.2.jar"/>
+	<classpathentry kind="lib" path="/aurora-plugin/dependency/geronimo-j2ee-management_1.1_spec-1.0.1.jar"/>
+	<classpathentry kind="lib" path="/aurora-plugin/dependency/geronimo-jms_1.1_spec-1.1.1.jar"/>
+	<classpathentry kind="lib" path="/aurora-plugin/dependency/geronimo-stax-api_1.0_spec-1.0.jar"/>
+	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapidoc3.jar"/>
+	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapidocjco.jar"/>
+	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapjco3.jar"/>
+	<classpathentry kind="lib" path="dependency/aurora.application.features.oraclestreams/aqapi.jar"/>
+	<classpathentry kind="lib" path="dependency/aurora.service.http/catalina.jar"/>
+	<classpathentry kind="lib" path="/AuroraDependency/Library/servlet-api.jar" sourcepath="C:/Users/linjinxiao/Desktop/Desktop.zip"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
