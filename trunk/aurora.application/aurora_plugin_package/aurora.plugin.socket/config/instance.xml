@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<u:instance-config xmlns:u="uncertain.pkg">
+	<u:instances>
+		<u:configurable-instance configFile="socket.config">
+			<u:description>监听socket数据</u:description>
+			<u:required-instances>
+				<u:type typeName="uncertain.proc.IProcedureManager" />
+				<u:type typeName="aurora.service.IServiceFactory" />
+			</u:required-instances>
+		</u:configurable-instance>				
+	</u:instances>
+</u:instance-config>
