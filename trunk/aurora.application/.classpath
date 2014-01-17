@@ -22,7 +22,6 @@
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapidocjco.jar"/>
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapjco3.jar"/>
 	<classpathentry kind="lib" path="dependency/aurora.application.features.oraclestreams/aqapi.jar"/>
-	<classpathentry kind="lib" path="dependency/aurora.service.http/catalina.jar"/>
 	<classpathentry kind="lib" path="/AuroraDependency/Library/servlet-api.jar" sourcepath="C:/Users/linjinxiao/Desktop/Desktop.zip"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
