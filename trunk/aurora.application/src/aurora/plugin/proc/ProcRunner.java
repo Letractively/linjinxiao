@@ -13,43 +13,21 @@ import org.json.JSONObject;
 import uncertain.composite.CompositeLoader;
 import uncertain.composite.CompositeMap;
 import uncertain.composite.JSONAdaptor;
-import uncertain.composite.TextParser;
 import uncertain.event.RuntimeContext;
 import uncertain.exception.BuiltinExceptionFactory;
 import uncertain.logging.ILoggerProvider;
 import uncertain.ocm.IObjectRegistry;
-import uncertain.proc.AbstractEntry;
 import uncertain.proc.IProcedureManager;
 import uncertain.proc.Procedure;
-import uncertain.proc.ProcedureRunner;
 import aurora.service.IServiceFactory;
 import aurora.service.ServiceContext;
 import aurora.service.ServiceInstance;
 import aurora.service.ServiceInvoker;
 import aurora.service.ServiceOutputConfig;
 
-public class ProcRunner extends AbstractEntry {
+public class ProcRunner {
 
-	private IObjectRegistry registry;
-	String resultPath;
-	String context;
-	String proc;
-
-	public ProcRunner(IObjectRegistry registry) {
-		this.registry = registry;
-	}
-
-	@Override
-	public void run(ProcedureRunner runner) throws Exception {
-		CompositeMap currentContext = runner.getContext();
-		context = TextParser.parse(context, currentContext);
-		proc = TextParser.parse(proc, currentContext);
-		String log = executeProcAndGetLog(registry, context, proc);
-		if (resultPath != null)
-			runner.getContext().putObject(resultPath, log, true);
-	}
-
-	public String executeProcAndGetLog(IObjectRegistry registry, String strContext, String strProcContent) {
+	public static String executeProcAndGetLog(IObjectRegistry registry, String strContext, String strProcContent) {
 		if (registry == null)
 			throw new IllegalArgumentException("parameter of IObjectRegistry can not be null!");
 		IProcedureManager procedureManager = (IProcedureManager) registry.getInstanceOfType(IProcedureManager.class);
@@ -76,11 +54,11 @@ public class ProcRunner extends AbstractEntry {
 			executeProc(registry, cmContext, proc, loggerProvider);
 			StringBufferLoggerProvider.remove();
 			String resp = getSvcOutput(cmSvcContent, cmContext);
-			if(resp != null){
+			if (resp != null) {
 				System.out.println(resp);
 				sb.append(resp);
 			}
-			
+
 		} catch (Exception e) {
 			sb.append(StringBufferLogger.LINE_SEPARATOR).append("exception: ").append(StringBufferLogger.LINE_SEPARATOR);
 			String exceptionMessage = getFullStackTrace(e);
@@ -91,7 +69,7 @@ public class ProcRunner extends AbstractEntry {
 		return message;
 	}
 
-	private String getSvcOutput(CompositeMap svc_config, CompositeMap context) throws Exception {
+	private static String getSvcOutput(CompositeMap svc_config, CompositeMap context) throws Exception {
 		if ("procedure".equalsIgnoreCase(svc_config.getName()))
 			return null;
 		ServiceInstance svc = ServiceInstance.getInstance(context);
@@ -99,60 +77,57 @@ public class ProcRunner extends AbstractEntry {
 		return getSvcResponse(svc);
 	}
 
-	private String getSvcResponse(ServiceInstance svc) throws IOException, JSONException {
-		
+	private static String getSvcResponse(ServiceInstance svc) throws IOException, JSONException {
+
 		StringBuffer sb = new StringBuffer();
-		
+
 		ServiceContext service_context = svc.getServiceContext();
-        String output = null;
-        Set<String> arrays_set = null;
-        
-        ServiceOutputConfig cfg = svc.getServiceOutputConfig();
-        if(cfg!=null){
-            output = cfg.getOutput();
-            String names_str = cfg.getArrays();
-            if(names_str!=null){
-                String[] arrays = names_str.split(",");
-                arrays_set = new HashSet<String>();
-                for(String s:arrays)
-                    arrays_set.add(s);
-            }
-        }
-        JSONObject json = new JSONObject();
-        // Write success flag
-        json.put("success", service_context.isSuccess());
-        // Write service invoke result
-        boolean write_result = service_context.getBoolean("write_result", true);
-        if (write_result) {
-            // CompositeMap result = context_map.getChild("result");
-            CompositeMap result = null;
-            if (output != null) {
-                Object obj = service_context.getObjectContext().getObject(
-                        output);
-                if (!(obj instanceof CompositeMap))
-                    throw new IllegalArgumentException(
-                            "Target for JSON output is not instance of CompositeMap: "
-                                    + obj);
-                result = (CompositeMap) obj;
-            } else
-            	result = service_context.getModel();
-            if (result != null) {
-                JSONObject o = JSONAdaptor.toJSONObject(result,arrays_set);
-                json.put("result", o);
-            }
-            String jsonData = getJsonData(json);
-            if (result != null) {
-    			sb.append(StringBufferLogger.LINE_SEPARATOR).append("web service response: ").append(StringBufferLogger.LINE_SEPARATOR);
-    			String cmContent = result.toXML();
-    			sb.append(cmContent);
-    			sb.append(StringBufferLogger.LINE_SEPARATOR).append("json response: ").append(StringBufferLogger.LINE_SEPARATOR);
-    			sb.append(jsonData);
-    		}
-        }
-        return sb.toString();
+		String output = null;
+		Set<String> arrays_set = null;
+
+		ServiceOutputConfig cfg = svc.getServiceOutputConfig();
+		if (cfg != null) {
+			output = cfg.getOutput();
+			String names_str = cfg.getArrays();
+			if (names_str != null) {
+				String[] arrays = names_str.split(",");
+				arrays_set = new HashSet<String>();
+				for (String s : arrays)
+					arrays_set.add(s);
+			}
+		}
+		JSONObject json = new JSONObject();
+		// Write success flag
+		json.put("success", service_context.isSuccess());
+		// Write service invoke result
+		boolean write_result = service_context.getBoolean("write_result", true);
+		if (write_result) {
+			// CompositeMap result = context_map.getChild("result");
+			CompositeMap result = null;
+			if (output != null) {
+				Object obj = service_context.getObjectContext().getObject(output);
+				if (!(obj instanceof CompositeMap))
+					throw new IllegalArgumentException("Target for JSON output is not instance of CompositeMap: " + obj);
+				result = (CompositeMap) obj;
+			} else
+				result = service_context.getModel();
+			if (result != null) {
+				JSONObject o = JSONAdaptor.toJSONObject(result, arrays_set);
+				json.put("result", o);
+			}
+			String jsonData = getJsonData(json);
+			if (result != null) {
+				sb.append(StringBufferLogger.LINE_SEPARATOR).append("web service response: ").append(StringBufferLogger.LINE_SEPARATOR);
+				String cmContent = result.toXML();
+				sb.append(cmContent);
+				sb.append(StringBufferLogger.LINE_SEPARATOR).append("json response: ").append(StringBufferLogger.LINE_SEPARATOR);
+				sb.append(jsonData);
+			}
+		}
+		return sb.toString();
 	}
 
-	private String getJsonData(JSONObject json) throws JSONException {
+	private static String getJsonData(JSONObject json) throws JSONException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		PrintWriter pw = new PrintWriter(baos);
 		json.write(pw);
@@ -160,7 +135,7 @@ public class ProcRunner extends AbstractEntry {
 		return baos.toString();
 	}
 
-	private CompositeMap parseProcedureConfig(CompositeMap svc) {
+	private static CompositeMap parseProcedureConfig(CompositeMap svc) {
 		if ("procedure".equalsIgnoreCase(svc.getName()))
 			return svc;
 		CompositeMap initProcedure = svc.getChild("init-procedure");
@@ -173,7 +148,7 @@ public class ProcRunner extends AbstractEntry {
 		return svc;
 	}
 
-	public void executeProc(IObjectRegistry registry, CompositeMap context, Procedure proc, ILoggerProvider loggerProvider) throws Exception {
+	public static void executeProc(IObjectRegistry registry, CompositeMap context, Procedure proc, ILoggerProvider loggerProvider) throws Exception {
 		IServiceFactory serviceFactory = (IServiceFactory) registry.getInstanceOfType(IServiceFactory.class);
 		if (serviceFactory == null)
 			throw BuiltinExceptionFactory.createInstanceNotFoundException(null, IServiceFactory.class, ProcRunner.class.getName());
@@ -183,12 +158,12 @@ public class ProcRunner extends AbstractEntry {
 		ServiceInvoker.invokeProcedureWithTransaction(service_name, proc, serviceFactory, context);
 	}
 
-	private String getFullStackTrace(Throwable exception) {
+	private static String getFullStackTrace(Throwable exception) {
 		String message = getExceptionStackTrace(exception);
 		return message;
 	}
 
-	private String getExceptionStackTrace(Throwable exception) {
+	private static String getExceptionStackTrace(Throwable exception) {
 		if (exception == null)
 			return null;
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -196,30 +171,6 @@ public class ProcRunner extends AbstractEntry {
 		exception.printStackTrace(pw);
 		pw.close();
 		return baos.toString();
-	}
-
-	public String getResultPath() {
-		return resultPath;
-	}
-
-	public void setResultPath(String resultPath) {
-		this.resultPath = resultPath;
-	}
-
-	public String getContext() {
-		return context;
-	}
-
-	public void setContext(String context) {
-		this.context = context;
-	}
-
-	public String getProc() {
-		return proc;
-	}
-
-	public void setProc(String proc) {
-		this.proc = proc;
 	}
 
 }
