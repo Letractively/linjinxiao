@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import org.json.JSONException;
@@ -42,6 +44,7 @@ public class ProcRunner {
 			if (strContext != null && !"".equals(strContext)) {
 				CompositeLoader loader = new CompositeLoader();
 				cmContext = loader.loadFromString(strContext, "UTF-8");
+				clearInstance(cmContext);
 			} else {
 				cmContext = new CompositeMap("context");
 			}
@@ -68,6 +71,20 @@ public class ProcRunner {
 		String message = sb.toString();
 		return message;
 	}
+	
+	private static void clearInstance(CompositeMap context) {
+		if (context == null)
+			return;
+		@SuppressWarnings("unchecked")
+		Iterator<Map.Entry<Object, Object>> it = context.entrySet().iterator();
+		if (it == null)
+			return;
+		while (it.hasNext()) {
+			it.next();
+			it.remove();
+		}
+	}
+
 
 	private static String getSvcOutput(CompositeMap svc_config, CompositeMap context) throws Exception {
 		if ("procedure".equalsIgnoreCase(svc_config.getName()))
