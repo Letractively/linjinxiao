@@ -54,11 +54,15 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 	int readInterval = DEFAULT_READINTERVAL;
 	int writeInterval = DEFAULT_WRITEINTERVAL;
 	boolean startNow = true;
-	boolean isRunning = false;
+	boolean isRunning = true;
+	boolean restart = false;
 
 	Thread initThread;
 	SocketReaderThread readerThread;
 	SocketWriterThread writerThread;
+	private int reconnectTime = 60000;// 1 minute 60000
+	private int maxReconnectTime = 3600000;// 1 hour 3600000
+	private ConnectionMonitor connMonitor;
 
 	public AutoGPS(IObjectRegistry registry) {
 		this.registry = registry;
@@ -68,28 +72,34 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 		serviceFactory = (IServiceFactory) registry.getInstanceOfType(IServiceFactory.class);
 		if (serviceFactory == null)
 			throw BuiltinExceptionFactory.createInstanceNotFoundException(this, IServiceFactory.class, this.getClass().getName());
+		init();
 	}
 
 	public AutoGPS(IObjectRegistry registry, IProcedureManager procedureManager, IServiceFactory serviceFactory) {
 		this.registry = registry;
 		this.procedureManager = procedureManager;
 		this.serviceFactory = serviceFactory;
+		init();
+
+	}
+
+	private void init() {
 		logger = LoggingContext.getLogger(PLUGIN, registry);
-//		 logger = new ConsoleLogger(PLUGIN);
+//		logger = new ConsoleLogger(PLUGIN);
+		connMonitor = new ConnectionMonitor(this);
+//		monitor.setDaemon(true);
+		connMonitor.start();
 	}
 
 	@Override
 	public boolean startup() {
-		if (startNow)
-			try {
-				init();
-			} catch (Exception e) {
-				logger.log(Level.SEVERE, "", e);
-			}
+		if (startNow) {
+			start();
+		}
 		return true;
 	}
 
-	public synchronized void init() throws Exception {
+	public synchronized void start() {
 		initThread = new Thread() {
 			public void run() {
 				try {
@@ -101,14 +111,15 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 					socketReader = gpsClientSocket.getInputStream();
 					socketWriter = gpsClientSocket.getOutputStream();
 					if (login()) {
-						registry.registerInstance(AutoGPS.class,AutoGPS.this);
-						isRunning = true;
+						registry.registerInstance(AutoGPS.class, AutoGPS.this);
 						readerThread = new SocketReaderThread();
 						writerThread = new SocketWriterThread();
 						readerThread.start();
 						writerThread.start();
 					}
+					restart = false;
 				} catch (Exception e) {
+					restart = true;
 					logger.log(Level.SEVERE, "init socket failed!", e);
 				}
 			}
@@ -120,9 +131,9 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 		AutoGPS autoGPS = (AutoGPS) registry.getInstanceOfType(AutoGPS.class);
 		if (autoGPS == null) {
 			autoGPS = new AutoGPS(registry);
-			autoGPS.init();
+			autoGPS.start();
 		} else if (!autoGPS.isRunning) {
-			autoGPS.init();
+			autoGPS.start();
 		}
 	}
 
@@ -177,12 +188,14 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 
 	class SocketReaderThread extends Thread {
 		public void run() {
-			while (isRunning) {
+			while (isRunning&&!restart) {
 				String receiveContent = null;
 				try {
 					receiveContent = inputStream2String(socketReader);
 				} catch (IOException e) {
 					logger.log(Level.SEVERE, "", e);
+					restart = true;
+					break;
 				}
 				if (receiveContent != null && !"".equals(receiveContent)) {
 					logger.log(Level.CONFIG, "receive:" + receiveContent);
@@ -246,7 +259,7 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 			String fullFormat = "@%03d%s";
 			String full = String.format(fullFormat, length, keepContent);
 			logger.log(Level.CONFIG, "keep string:" + full);
-			while (isRunning) {
+			while (isRunning&&!restart) {
 				try {
 					byte[] keepBytes = full.getBytes(charsetName);
 					socketWriter.write(keepBytes);
@@ -275,6 +288,13 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 	@Override
 	public void shutdown() {
 		isRunning = false;
+		if (connMonitor != null) {
+			connMonitor.interrupt();
+		}
+		shutdownIntern();
+	}
+
+	private void shutdownIntern() {
 		if (initThread != null)
 			initThread.interrupt();
 		if (readerThread != null) {
@@ -378,6 +398,81 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 		this.procName = procName;
 	}
 
+	public int getReconnectTime() {
+		return reconnectTime;
+	}
+
+	public void setReconnectTime(int reconnectTime) {
+		this.reconnectTime = reconnectTime;
+	}
+
+	public int getMaxReconnectTime() {
+		return maxReconnectTime;
+	}
+
+	public void setMaxReconnectTime(int maxReconnectTime) {
+		this.maxReconnectTime = maxReconnectTime;
+	}
+
+	class ConnectionMonitor extends Thread {
+
+		private AutoGPS gps;
+		private int minReconnectTime;
+		private int maxReconnectTime;
+
+		private int nextReconnectTime = 0;
+
+		public ConnectionMonitor(AutoGPS gps) {
+			this.gps = gps;
+			this.minReconnectTime = gps.getReconnectTime();
+			this.maxReconnectTime = gps.getMaxReconnectTime();
+		}
+
+		public void run() {
+			while (gps.isRunning) {
+				if (!gps.restart) {
+					nextReconnectTime = minReconnectTime;
+					sleepOneSecond();
+				} else {
+					shutdownIntern();
+					startServer();
+				}
+			}
+		}
+
+		private void sleepOneSecond() {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+			}
+		}
+
+		private void startServer() {
+			int thisReconnectTime = computeConnectTime();
+			try {
+				Thread.sleep(thisReconnectTime);
+			} catch (InterruptedException e) {
+			}
+			gps.start();
+		}
+
+		private int computeConnectTime() {
+			int thisReconnectTime = nextReconnectTime;
+			if (thisReconnectTime == 0)
+				nextReconnectTime = minReconnectTime;
+			else {
+				if (nextReconnectTime < maxReconnectTime) {
+					if (nextReconnectTime * 2 <= maxReconnectTime) {
+						nextReconnectTime = nextReconnectTime * 2;
+					} else {
+						nextReconnectTime = maxReconnectTime;
+					}
+				}
+			}
+			return thisReconnectTime;
+		}
+	}
+
 	public static void main(String[] args) throws Exception {
 		IObjectRegistry registry = new ObjectRegistryImpl();
 		AutoGPS gps = new AutoGPS(registry, null, null);
@@ -385,20 +480,20 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 		gps.setServerPort(5556);
 		gps.setUserName("7492");
 		gps.setPassword("7492.pwd");
-		gps.init();
-		Thread.sleep(10000);
-
-		System.out.println("shutdown");
-		AutoGPS.shutdown(registry);
-		Thread.sleep(50000);
-		System.out.println("start");
-		AutoGPS.start(registry);
-		Thread.sleep(10000);
-		System.out.println("shutdown");
-		AutoGPS.shutdown(registry);
-		Thread.sleep(50000);
-		System.out.println("start");
-		AutoGPS.start(registry);
+		gps.start();
+		// Thread.sleep(10000);
+		//
+		// System.out.println("shutdown");
+		// AutoGPS.shutdown(registry);
+		// Thread.sleep(50000);
+		// System.out.println("start");
+		// AutoGPS.start(registry);
+		// Thread.sleep(10000);
+		// System.out.println("shutdown");
+		// AutoGPS.shutdown(registry);
+		// Thread.sleep(50000);
+		// System.out.println("start");
+		// AutoGPS.start(registry);
 	}
 
 }
