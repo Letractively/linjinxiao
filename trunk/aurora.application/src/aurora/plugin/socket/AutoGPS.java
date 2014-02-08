@@ -193,7 +193,7 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 				try {
 					receiveContent = inputStream2String(socketReader);
 				} catch (IOException e) {
-					logger.log(Level.SEVERE, "", e);
+					logger.log(Level.SEVERE, "SocketReaderException:", e);
 					restart = true;
 					break;
 				}
@@ -239,7 +239,7 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 			throw new IllegalArgumentException("Procedure can not be null!");
 		try {
 			CompositeMap fakeContext = new CompositeMap("context");
-			String name = "gps." + gps_info;
+			String name = "gps." + System.currentTimeMillis();
 			fakeContext.putObject("/parameter/@gps_info", gps_info, true);
 			fakeContext.putObject("/parameter/@info", gps_info, true);
 			fakeContext.putObject("/session/@user_id", -1, true);
@@ -265,7 +265,9 @@ public class AutoGPS extends AbstractLocatableObject implements ILifeCycle {
 					socketWriter.write(keepBytes);
 					socketWriter.flush();
 				} catch (Exception e) {
-					logger.log(Level.SEVERE, "", e);
+					logger.log(Level.SEVERE, "SocketWriterException:", e);
+					restart = true;
+					break;
 				}
 				try {
 					Thread.sleep(writeInterval);
