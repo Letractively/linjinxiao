@@ -15,8 +15,8 @@ import oracle.apps.fnd.common.WebRequestUtil;
 import oracle.apps.fnd.functionSecurity.Function;
 import oracle.apps.fnd.functionSecurity.FunctionSecurity;
 import oracle.apps.fnd.functionSecurity.SecurityGroup;
+import oracle.apps.fnd.functionSecurity.User;
 import oracle.apps.fnd.sso.Utils;
-
 import uncertain.composite.CompositeMap;
 import uncertain.datatype.StringType;
 import uncertain.logging.ILogger;
@@ -53,6 +53,9 @@ public class AccessCheck extends AbstractLocatableObject {
 		HttpServletRequest request = svc.getRequest();
 		HttpServletResponse response = svc.getResponse();
 		WebAppsContext webAppcontext = WebRequestUtil.validateContext(request, response);
+//		boolean bool = Utils.isAppsContextAvailable();
+//		logger.log("isAppsContextAvailable:"+bool);
+//		WebAppsContext webAppcontext = Utils.getAppsContext();
 		logger.log("AccessCheck..");
 		logger.log("context:" + context.toXML());
 
@@ -71,13 +74,21 @@ public class AccessCheck extends AbstractLocatableObject {
 			String service_name = svc.getName();
 			logger.log("service_name:" + service_name);
 			Function function = queryFunction(service_name, webAppcontext);
+			FunctionSecurity localFunctionSecurity = new FunctionSecurity(webAppcontext);
+			User user = localFunctionSecurity.getUser();
+			logger.log("user:" + user);
+			if(user!= null){
+				logger.log("getUserName:" + user.getUserName());
+			}
 			if (function != null) {
+				boolean access = localFunctionSecurity.testFunction(function);
+				logger.log("access:" + access);
 				String redirectUrl = getLocalRFUrl(function);
 				logger.log("redirectUrl:" + redirectUrl);
-				if (redirectUrl != null && !"".equals(redirectUrl)) {
-					context.putObject("/access-check/@status_code", "redirect", true);
-					context.putObject("/access-check/@redirectUrl", redirectUrl, true);
-				}
+//				if (redirectUrl != null && !"".equals(redirectUrl)) {
+//					context.putObject("/access-check/@status_code", "redirect", true);
+//					context.putObject("/access-check/@redirectUrl", redirectUrl, true);
+//				}
 			}
 			return;
 		} else {
@@ -169,8 +180,47 @@ public class AccessCheck extends AbstractLocatableObject {
 		}
 		return null;
 	}
+	public Function querySubFunction(String service_full_name, WebAppsContext webAppcontext) throws Exception {
+		logger.log("cacheFunction:" + cacheFunction + " service_full_name:" + service_full_name);
+		Integer functionId = cacheFunction.get(service_full_name);
+		FunctionSecurity functionSecurity = new FunctionSecurity(webAppcontext);
+		if (functionId != null) {
+			Function function = functionSecurity.getFunction(functionId);
+			if (service_full_name.equals(function.getWebHTMLCall()))
+				return function;
+		}
+		functionId = querySubFunctionId(service_full_name, webAppcontext);
+		if (functionId > 0) {
+			return functionSecurity.getFunction(functionId);
+		}
+		return null;
+	}
 
 	public int queryFunctionId(String service_full_name, WebAppsContext webAppcontext) throws Exception {
+		StringBuffer query_sql = new StringBuffer();
+		query_sql.append(" select t.function_id");
+		query_sql.append("   from fnd_form_functions t ");
+		query_sql.append("  where t.web_html_call= ? ");
+
+		PrepareParameter[] parameters = new PrepareParameter[1];
+		parameters[0] = new PrepareParameter(new StringType(), service_full_name);
+		CompositeMap result = sqlQueryWithParas(webAppcontext, query_sql.toString(), parameters);
+		if (result != null) {
+			logger.log("result:" + result.toXML());
+			List<CompositeMap> childList = result.getChilds();
+			if (childList != null) {
+				if (childList.size() > 1)
+					throw new IllegalArgumentException(" find more than one record with parameter:'web_html_call'=" + service_full_name);
+				CompositeMap record = childList.get(0);
+				int function_id = record.getInt("function_id");
+				if (function_id > 0)
+					cacheFunction.put(service_full_name, function_id);
+				return function_id;
+			}
+		}
+		return -1;
+	}
+	public int querySubFunctionId(String service_full_name, WebAppsContext webAppcontext) throws Exception {
 		StringBuffer query_sql = new StringBuffer();
 		query_sql.append(" select t.function_id");
 		query_sql.append("   from fnd_form_functions t ");
