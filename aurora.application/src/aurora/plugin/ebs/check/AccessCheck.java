@@ -1,6 +1,5 @@
 package aurora.plugin.ebs.check;
 
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,7 +14,6 @@ import oracle.apps.fnd.common.WebRequestUtil;
 import oracle.apps.fnd.functionSecurity.Function;
 import oracle.apps.fnd.functionSecurity.FunctionSecurity;
 import oracle.apps.fnd.functionSecurity.SecurityGroup;
-import oracle.apps.fnd.functionSecurity.User;
 import oracle.apps.fnd.sso.Utils;
 import uncertain.composite.CompositeMap;
 import uncertain.datatype.StringType;
@@ -53,12 +51,13 @@ public class AccessCheck extends AbstractLocatableObject {
 		HttpServletRequest request = svc.getRequest();
 		HttpServletResponse response = svc.getResponse();
 		WebAppsContext webAppcontext = WebRequestUtil.validateContext(request, response);
-//		boolean bool = Utils.isAppsContextAvailable();
-//		logger.log("isAppsContextAvailable:"+bool);
-//		WebAppsContext webAppcontext = Utils.getAppsContext();
+		FunctionSecurity localFunctionSecurity = new FunctionSecurity(webAppcontext);
+
 		logger.log("AccessCheck..");
 		logger.log("context:" + context.toXML());
 
+		String service_name = svc.getName();
+		logger.log("service_name:" + service_name);
 		boolean ajaxRequest = isAjaxRequest(request, serviceContext);
 		if (!ajaxRequest) {
 			String reqTraxId = (String) request.getAttribute("ICX_TRANSACTION_ID");
@@ -71,65 +70,30 @@ public class AccessCheck extends AbstractLocatableObject {
 				}
 				return;
 			}
-			String service_name = svc.getName();
-			logger.log("service_name:" + service_name);
 			Function function = queryFunction(service_name, webAppcontext);
-			FunctionSecurity localFunctionSecurity = new FunctionSecurity(webAppcontext);
-			User user = localFunctionSecurity.getUser();
-			logger.log("user:" + user);
-			if(user!= null){
-				logger.log("getUserName:" + user.getUserName());
-			}
 			if (function != null) {
 				boolean access = localFunctionSecurity.testFunction(function);
 				logger.log("access:" + access);
 				String redirectUrl = getLocalRFUrl(function);
 				logger.log("redirectUrl:" + redirectUrl);
-//				if (redirectUrl != null && !"".equals(redirectUrl)) {
-//					context.putObject("/access-check/@status_code", "redirect", true);
-//					context.putObject("/access-check/@redirectUrl", redirectUrl, true);
-//				}
+				if (redirectUrl != null && !"".equals(redirectUrl)) {
+					context.putObject("/access-check/@status_code", "redirect", true);
+					context.putObject("/access-check/@redirectUrl", redirectUrl, true);
+				}
 			}
 			return;
 		} else {
-			String referer = request.getHeader("referer");
-			logger.log("referer:" + referer);
-			if (referer == null) {
-				context.putObject("/access-check/@status_code", "unauthorized", true);
-				return;
-			}
-			URL refUrl = new URL(referer);
-			Object functionid = getParameterValue(refUrl.getQuery(), "function_id");
-			if (functionid == null) {
-				context.putObject("/access-check/@status_code", "unauthorized", true);
-				return;
-			}
-
-			Function function = queryFunction(Integer.valueOf(functionid.toString()), webAppcontext);
+			Function function = querySubFunction(service_name, webAppcontext);
 			if (function != null) {
-				String webHtmlCall = function.getWebHTMLCall();
-				logger.log("webHtmlCall:" + webHtmlCall);
-				if (webHtmlCall != null) {
-					int screenIndex = webHtmlCall.indexOf(".screen");
-					if (screenIndex != -1)
-						return;
+				boolean access = localFunctionSecurity.testFunction(function);
+				logger.log("access:" + access);
+				if(access){
+					return;
 				}
 			}
 			context.putObject("/access-check/@status_code", "unauthorized", true);
 			return;
 		}
-
-		// String functionId = request.getParameter("function_id");
-		// if(functionId)
-		//
-		// String requestBase =
-		// "http://"+request.getServerName()+":"+request.getServerPort()+request.getContextPath();
-		// logger.log("requestBase:"+requestBase);
-		// String referer = request.getHeader("referer");
-		// logger.log("referer:"+referer);
-		// if(referer != null && referer.startsWith(requestBase)){
-		// return;
-		// }
 	}
 
 	public static String getParameterValue(String queryString, String key) {
@@ -186,7 +150,7 @@ public class AccessCheck extends AbstractLocatableObject {
 		FunctionSecurity functionSecurity = new FunctionSecurity(webAppcontext);
 		if (functionId != null) {
 			Function function = functionSecurity.getFunction(functionId);
-			if (service_full_name.equals(function.getWebHTMLCall()))
+			if (service_full_name.equals(function.getUserFunctionName()))
 				return function;
 		}
 		functionId = querySubFunctionId(service_full_name, webAppcontext);
@@ -198,7 +162,7 @@ public class AccessCheck extends AbstractLocatableObject {
 
 	public int queryFunctionId(String service_full_name, WebAppsContext webAppcontext) throws Exception {
 		StringBuffer query_sql = new StringBuffer();
-		query_sql.append(" select t.function_id");
+		query_sql.append(" select t.function_id ");
 		query_sql.append("   from fnd_form_functions t ");
 		query_sql.append("  where t.web_html_call= ? ");
 
@@ -222,9 +186,10 @@ public class AccessCheck extends AbstractLocatableObject {
 	}
 	public int querySubFunctionId(String service_full_name, WebAppsContext webAppcontext) throws Exception {
 		StringBuffer query_sql = new StringBuffer();
-		query_sql.append(" select t.function_id");
-		query_sql.append("   from fnd_form_functions t ");
-		query_sql.append("  where t.web_html_call= ? ");
+		query_sql.append(" select t.function_id ");
+		query_sql.append("   from fnd_form_functions_tl t ");
+		query_sql.append("  where t.user_function_name = ? ");
+		query_sql.append("    and t.language = userenv('lang')");
 
 		PrepareParameter[] parameters = new PrepareParameter[1];
 		parameters[0] = new PrepareParameter(new StringType(), service_full_name);
@@ -234,7 +199,7 @@ public class AccessCheck extends AbstractLocatableObject {
 			List<CompositeMap> childList = result.getChilds();
 			if (childList != null) {
 				if (childList.size() > 1)
-					throw new IllegalArgumentException(" find more than one record with parameter:'web_html_call'=" + service_full_name);
+					throw new IllegalArgumentException(" find more than one record with parameter:'user_function_name'=" + service_full_name);
 				CompositeMap record = childList.get(0);
 				int function_id = record.getInt("function_id");
 				if (function_id > 0)

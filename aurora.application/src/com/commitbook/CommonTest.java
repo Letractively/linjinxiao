@@ -1,6 +1,9 @@
 package com.commitbook;
 
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Properties;
@@ -56,7 +59,7 @@ public class CommonTest {
 
 	public static void main(String[] args) throws Exception {
 		CommonTest test = new CommonTest();
-		test.regex();
+		test.url("http://127.0.0.1:8080/hec/modules/sys/WS/sample/svc/sys_provide_webservice_one_record_sample.svc");
 //		test.removeCDATA("<test><![CDATA[ok]]></test>");
 //		double a=10080692.2;
 //		System.out.println(a);
@@ -68,6 +71,11 @@ public class CommonTest {
 //		String b= BigDecimal.valueOf(a).toString();
 //		System.out.println(b);
 
+	}
+	private void url(String targetUrl) throws Exception{
+		URI uri = new URI(targetUrl);
+		URL url = uri.toURL();
+		System.out.println(url);
 	}
 	
 	private void regex(){
