@@ -12,7 +12,6 @@
 	<classpathentry kind="lib" path="E:/workspace/eclipse/workspace/commitbook/dependency/jsoup-1.6.2.jar"/>
 	<classpathentry kind="lib" path="E:/workspace/eclipse/workspace/commitbook/dependency/ant.jar"/>
 	<classpathentry kind="lib" path="E:/workspace/eclipse/workspace/commitbook/dependency/mybatis-3.2.3.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Coupon"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Oracle AQ"/>
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/activemq-core-5.4.2.jar"/>
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/geronimo-j2ee-management_1.1_spec-1.0.1.jar"/>
@@ -20,8 +19,14 @@
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/geronimo-stax-api_1.0_spec-1.0.jar"/>
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapidoc3.jar"/>
 	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapidocjco.jar"/>
-	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapjco3.jar"/>
 	<classpathentry kind="lib" path="dependency/aurora.application.features.oraclestreams/aqapi.jar"/>
-	<classpathentry kind="lib" path="/AuroraDependency/Library/servlet-api.jar" sourcepath="C:/Users/linjinxiao/Desktop/Desktop.zip"/>
+	<classpathentry kind="lib" path="E:/workspace/worksheet/ebs/classes"/>
+	<classpathentry kind="lib" path="E:/workspace/worksheet/ebs/lib/javax.servlet-3.0.0.v201112011016.jar"/>
+	<classpathentry kind="lib" path="E:/workspace/worksheet/ebs/lib/javax.servlet.jsp.jar"/>
+	<classpathentry kind="lib" path="E:/workspace/worksheet/ebs/oc4j-internal.jar"/>
+	<classpathentry kind="lib" path="/aurora-plugin/dependency/sapjco3.jar"/>
+	<classpathentry kind="lib" path="/AuroraDependency/Library/jotm-client.jar"/>
+	<classpathentry kind="lib" path="dependency/aurora.plugin.coupon/empp.jar"/>
+	<classpathentry kind="lib" path="dependency/aurora.plugin.coupon/xercesImpl-2.10.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
